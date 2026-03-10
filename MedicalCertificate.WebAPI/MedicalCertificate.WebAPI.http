@@ -1,0 +1,6 @@
+@MedicalCertificate.WebAPI_HostAddress = http://localhost:5280
+
+GET {{MedicalCertificate.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
