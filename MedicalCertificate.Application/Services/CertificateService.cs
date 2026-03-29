@@ -77,11 +77,18 @@ public class CertificateService : ICertificateService
             if (!certificates.Any())
                 return Result.Failure<CertificateDto[]>(new Error(ErrorCode.NotFound, "Справок нет."));
 
-            var result = certificates.Select(certificate => new CertificateDto
+            var result = certificates.Select(c => new CertificateDto
             {
-                Id = certificate.Id,
-                UserId = certificate.UserId
-                
+                Id = c.Id,
+                UserId = c.UserId,
+                Clinic = c.Clinic,
+                StartDate = c.StartDate,
+                EndDate = c.EndDate,
+                Comment = c.Comment,
+                FilePathId = c.FilePathId,
+                StatusId = c.StatusId,
+                ReviewerComment = c.ReviewerComment,
+                CreatedAt = c.CreatedAt
             }).ToArray();
 
             return result;

@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text;
 using MedicalCertificate.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -46,6 +47,12 @@ builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 
 builder.Services.Configure<JwtConfigurationOptions>(
     builder.Configuration.GetSection("JwtConfigurationOptions"));
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
