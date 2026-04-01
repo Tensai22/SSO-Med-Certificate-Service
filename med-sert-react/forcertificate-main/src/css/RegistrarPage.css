@@ -1,0 +1,101 @@
+﻿.registrar-container {
+    padding: 30px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.registrar-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #333;
+    text-align: center;
+}
+
+.registrar-container {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.registrar-title {
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.filter-block {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.search-input {
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    flex: 1;
+}
+
+.certificate-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.certificate-table th, .certificate-table td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+}
+
+.certificate-table th {
+    background-color: #566f9e;
+    color: white;
+}
+
+.status {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.status.approved {
+    background-color: #22c55e;
+    color: white;
+}
+
+.status.rejected {
+    background-color: #ef4444;
+    color: white;
+}
+
+.status.pending {
+    background-color: #facc15;
+    color: black;
+}
+
+button {
+    margin: 0 2px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.filter-block {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.search-input {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}

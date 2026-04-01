@@ -1,0 +1,12 @@
+body {
+    background-color: #f1f4f9;
+    margin: 0;
+    padding-right: 172px;
+    padding-left: 125px;
+    font-family: sans-serif;
+}
+.container {
+    max-width: 1210px;
+    margin: 0 auto;
+
+}
