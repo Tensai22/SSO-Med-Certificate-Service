@@ -7,7 +7,13 @@ const RoleBasedRedirect = () => {
         return <Navigate to="/login" replace />;
     }
 
-    const user = JSON.parse(userData);
+    let user = null;
+
+    try {
+        user = JSON.parse(userData);
+    } catch (error) {
+        return <Navigate to="/login" replace />;
+    }
 
     if (user.roleId === 1) {
         return <Navigate to="/registrar" replace />;

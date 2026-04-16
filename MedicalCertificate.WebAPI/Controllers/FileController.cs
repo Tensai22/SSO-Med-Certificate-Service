@@ -9,6 +9,13 @@ namespace MedicalCertificate.WebAPI.Controllers;
 [Route("api/[controller]")]
 public class FileController : ControllerBase
 {
+    private static readonly HashSet<string> AllowedPdfContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/pdf",
+        "application/x-pdf",
+        "application/octet-stream"
+    };
+
     private readonly IFileStorageService _fileStorage;
     private readonly IFileRepository _fileRepository;
 
@@ -26,21 +33,29 @@ public class FileController : ControllerBase
             return BadRequest("Файл не выбран");
 
         var safeFileName = Path.GetFileName(request.File.FileName);
+        var fileExtension = Path.GetExtension(safeFileName);
+        var isPdfExtension = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
+        var isAllowedContentType = AllowedPdfContentTypes.Contains(request.File.ContentType);
+
+        if (!isPdfExtension || !isAllowedContentType)
+            return BadRequest("Допускаются только PDF файлы");
+
+        var objectKey = $"{Guid.NewGuid():N}.pdf";
 
         using var memoryStream = new MemoryStream();
         await request.File.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        await _fileStorage.UploadAsync(safeFileName, memoryStream, request.File.ContentType);
+        await _fileStorage.UploadAsync(objectKey, memoryStream, "application/pdf");
 
         var storedFile = new StoredFile
         {
             Name = safeFileName,
-            ContentType = request.File.ContentType,
-            FileType = Path.GetExtension(request.File.FileName),
+            ContentType = "application/pdf",
+            FileType = ".pdf",
             Size = request.File.Length,
             Bucket = "medical-files",
-            ObjectKey = safeFileName,
+            ObjectKey = objectKey,
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow
         };
@@ -79,7 +94,7 @@ public class FileController : ControllerBase
 
         var stream = await _fileStorage.DownloadAsync(file.ObjectKey);
 
-        return File(stream, file.ContentType ?? "image/jpeg");
+        return File(stream, file.ContentType ?? "application/octet-stream", enableRangeProcessing: true);
     }
 
 }

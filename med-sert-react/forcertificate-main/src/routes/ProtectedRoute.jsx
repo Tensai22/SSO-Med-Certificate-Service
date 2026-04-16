@@ -10,7 +10,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     let user = null;
     if (userData) {
-        user = JSON.parse(userData);
+        try {
+            user = JSON.parse(userData);
+        } catch (error) {
+            return <Navigate to="/login" replace />;
+        }
     } else {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));

@@ -1,12 +1,11 @@
-// src/components/MainPage.jsx
 import React from 'react';
-import Content from '../components/Content';
+import StudentCertificateContent from '../features/certificates/components/StudentCertificateContent';
 
 
 const MainPage = () => {
     return (
         <>
-            <Content />
+            <StudentCertificateContent />
         </>
     );
 };

@@ -1,54 +1,49 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Импортируем хук для редиректа
+import { useNavigate } from 'react-router-dom';
 import '../css/LoginPage.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { login as loginUser } from '../services/authService';
 
 const LoginPage = () => {
     const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
-    // LoginPage.js (обновленная часть)
-const handleLogin = async (e) => {
-    e.preventDefault();
+    const handleLogin = async (event) => {
+        event.preventDefault();
 
-    const fullEmail = login.includes('@') ? login : `${login}@satbayev.university`;
+        const fullEmail = login.includes('@') ? login : `${login}@satbayev.university`;
 
-    try {
-        const response = await fetch('http://localhost:5280/api/Auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: fullEmail, password: password })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log("Полный ответ сервера:", data); // Посмотри, как там называется ID (может быть Id, UserId или sub)
-
-            // Проверяем все частые варианты названия ID
+        try {
+            const data = await loginUser({ email: fullEmail, password });
             const actualId = data.userId || data.UserId || data.id || data.Id;
+            const roleId = data.roleId || data.RoleId;
 
-            if (actualId) {
-                localStorage.setItem('userId', actualId.toString());
-                
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify({ 
-                    roleId: data.roleId || data.RoleId,
-                    email: fullEmail 
-                }));
-
-                navigate(data.roleId === 1 || data.RoleId === 1 ? '/registrar' : '/sertificate');
-            } else {
-                console.error("Ошибка: сервер не прислал ID пользователя в поле userId или Id");
+            if (!actualId) {
                 toast.error('Ошибка данных сервера. ID пользователя не найден.');
+                return;
             }
+
+            if (!roleId) {
+                toast.error('Ошибка данных сервера. Роль пользователя не найдена.');
+                return;
+            }
+
+            localStorage.setItem('userId', actualId.toString());
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify({
+                roleId,
+                email: fullEmail,
+            }));
+
+            navigate(roleId === 1 ? '/registrar' : '/sertificate');
+        } catch (error) {
+            console.error('Ошибка при запросе:', error);
+            const errorMessage = error.response?.data?.title || 'Неверный логин или пароль';
+            toast.error(errorMessage);
         }
-            } catch (error) {
-                console.error('Ошибка при запросе:', error);
-                toast.error('Сервер не отвечает');
-            }
-        };
+    };
 
     return (
         <div className="login-wrapper">

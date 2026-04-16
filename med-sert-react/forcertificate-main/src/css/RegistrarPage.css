@@ -332,11 +332,37 @@ input::placeholder {
     align-items: flex-start;
 }
 
+.modal-image-container {
+    width: 100%;
+}
+
+.modal-file-preview {
+    width: 100%;
+    min-height: 520px;
+    border: none;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    background-color: white;
+    object-fit: contain;
+}
+
+.pdf-preview {
+    height: 620px;
+}
+
+.preview-state {
+    margin: 0;
+    color: #333;
+    text-align: center;
+}
+
+.preview-state a {
+    color: #025ba9;
+    text-decoration: underline;
+}
+
 .modal-image-container img {
     max-width: 100%;
     height: auto;
-    box-shadow: 0 0 5px rgba(0,0,0,0.1);
-    background-color: white;
 }
 
 /* Правая часть: Детали */

@@ -1,96 +1,139 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useCallback, useEffect, useState } from 'react';
 import '../css/RegistrarPage.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import {
+    approveCertificate,
+    fetchAllCertificates,
+    rejectCertificate,
+} from '../services/certificateService';
+import { buildFileUrl, downloadFileById } from '../services/fileService';
 
 const RegistrarPage = () => {
-    const [activeTab, setActiveTab] = useState('vkhodyashie'); // 'vkhodyashie' или 'istoriya'
+    const [activeTab, setActiveTab] = useState('vkhodyashie');
     const [certificates, setCertificates] = useState([]);
-    
-    // Состояния для модального окна
     const [selectedCert, setSelectedCert] = useState(null);
     const [registrarComment, setRegistrarComment] = useState('');
-    
-    const registrarId = 1; // ID текущего регистратора
+    const [previewUrl, setPreviewUrl] = useState('');
+    const [previewType, setPreviewType] = useState('');
+    const [previewError, setPreviewError] = useState('');
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+    const registrarId = 1;
+
+    const fetchCertificates = useCallback(async () => {
+        try {
+            const allData = await fetchAllCertificates();
+
+            if (activeTab === 'vkhodyashie') {
+                setCertificates(allData.filter((cert) => cert.statusId === 1));
+                return;
+            }
+
+            setCertificates(allData.filter((cert) => cert.statusId !== 1));
+        } catch (error) {
+            console.error('Ошибка при загрузке данных:', error);
+        }
+    }, [activeTab]);
 
     useEffect(() => {
         fetchCertificates();
-    }, [activeTab]);
+    }, [fetchCertificates]);
 
-    const fetchCertificates = async () => {
-        try {
-            const response = await axios.get('http://localhost:5280/api/Certificate');
-            const allData = response.data;
+    useEffect(() => {
+        let objectUrl;
 
-            if (activeTab === 'vkhodyashie') {
-                // Показываем только те, что ждут проверки (statusId = 1)
-                setCertificates(allData.filter(cert => cert.statusId === 1));
-            } else {
-                // Показываем всё остальное (Принято/Отклонено)
-                setCertificates(allData.filter(cert => cert.statusId !== 1));
+        const loadFilePreview = async () => {
+            if (!selectedCert?.filePathId) {
+                setPreviewUrl('');
+                setPreviewType('');
+                setPreviewError('Для этой справки файл не найден');
+                return;
             }
-        } catch (error) {
-            console.error("Ошибка при загрузке данных:", error);
+
+            setIsPreviewLoading(true);
+            setPreviewError('');
+            setPreviewType('');
+            setPreviewUrl('');
+
+            try {
+                const fileBlob = await downloadFileById(selectedCert.filePathId);
+                objectUrl = URL.createObjectURL(fileBlob);
+                setPreviewUrl(objectUrl);
+                setPreviewType(fileBlob.type?.toLowerCase().includes('pdf') ? 'pdf' : 'image');
+            } catch (error) {
+                console.error('Ошибка при загрузке файла справки:', error);
+                setPreviewError('Не удалось открыть файл справки');
+            } finally {
+                setIsPreviewLoading(false);
+            }
+        };
+
+        if (selectedCert) {
+            loadFilePreview();
         }
-    };
+
+        return () => {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, [selectedCert]);
 
     const handleAction = async (id, action) => {
         try {
-            const url = `http://localhost:5280/api/Certificate/${id}/${action}`;
-            
-            // Подстраиваем payload под вашу модель (ReviewerComment вместо comment)
-            const payload = action === 'approve' 
-                ? { approvedByUserId: registrarId, reviewerComment: registrarComment }
-                : { rejectedByUserId: registrarId, reviewerComment: registrarComment || "Не соответствует требованиям" };
+            if (action === 'approve') {
+                await approveCertificate(id, {
+                    approvedByUserId: registrarId,
+                });
+                toast.success('Справка подтверждена');
+            } else {
+                await rejectCertificate(id, {
+                    rejectedByUserId: registrarId,
+                    comment: registrarComment || 'Не соответствует требованиям',
+                });
+                toast.success('Справка отклонена');
+            }
 
-            await axios.post(url, payload);
-            toast.success(action === 'approve' ? "Справка подтверждена" : "Справка отклонена");
-            
-            closeModal(); // Закрываем модальное окно
-            fetchCertificates(); // Обновляем список
+            closeModal();
+            fetchCertificates();
         } catch (error) {
-            console.error("Ошибка при обработке:", error);
-            toast.error("Не удалось выполнить действие");
+            console.error('Ошибка при обработке:', error);
+            toast.error('Не удалось выполнить действие');
         }
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
-        
-        // 'ru-RU' гарантирует формат ДД.ММ.ГГГГ
+
         return date.toLocaleDateString('ru-RU');
     };
 
     const openModal = (cert) => {
         setSelectedCert(cert);
-        setRegistrarComment(cert.reviewerComment || ''); // Если есть старый комментарий, показываем его
+        setRegistrarComment(cert.reviewerComment || '');
     };
 
     const closeModal = () => {
         setSelectedCert(null);
-    };
-
-    // Функция для получения URL картинки по FilePathId
-    const getImageUrl = (filePathId) => {
-        if (!filePathId) return "https://via.placeholder.com/400x500?text=Нет+изображения";
-        
-        // Путь теперь соответствует новому методу в контроллере [HttpGet("{id}")]
-        return `http://localhost:5280/api/File/${filePathId}`; 
+        setPreviewUrl('');
+        setPreviewType('');
+        setPreviewError('');
+        setIsPreviewLoading(false);
     };
 
     return (
         <div className="page-container">
             <aside className="sidebar">
-                <button 
-                    className={activeTab === 'vkhodyashie' ? 'active' : ''} 
+                <button
+                    className={activeTab === 'vkhodyashie' ? 'active' : ''}
                     onClick={() => setActiveTab('vkhodyashie')}
                 >
                     Входящие данные
                 </button>
-                <button 
-                    className={activeTab === 'istoriya' ? 'active' : ''} 
+                <button
+                    className={activeTab === 'istoriya' ? 'active' : ''}
                     onClick={() => setActiveTab('istoriya')}
                 >
                     История
@@ -131,8 +174,8 @@ const RegistrarPage = () => {
                                     <td>{cert.clinic}</td>
                                     <td>{formatDate(cert.startDate)} - {formatDate(cert.endDate)}</td>
                                     <td>
-                                        <button 
-                                            className="action-btn btn-view" 
+                                        <button
+                                            className="action-btn btn-view"
                                             onClick={() => openModal(cert)}
                                         >
                                             📄 Посмотреть
@@ -166,28 +209,53 @@ const RegistrarPage = () => {
                         
                         <div className="modal-body">
                             <div className="modal-left">
-                                <div className="modal-image-container">
-                                    {/* Берем картинку по FilePathId */}
-                                    <img 
-                                        src={getImageUrl(selectedCert.filePathId)} 
-                                        alt="Медицинская справка" 
-                                    />
+                                    <div className="modal-image-container">
+                                        {isPreviewLoading && (
+                                            <p className="preview-state">Загрузка файла...</p>
+                                        )}
+
+                                        {!isPreviewLoading && previewError && (
+                                            <div className="preview-state">
+                                                <p>{previewError}</p>
+                                                {selectedCert.filePathId && (
+                                                    <a
+                                                        href={buildFileUrl(selectedCert.filePathId)}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    >
+                                                        Открыть файл в новой вкладке
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {!isPreviewLoading && !previewError && previewType === 'pdf' && (
+                                            <iframe
+                                                src={previewUrl}
+                                                title="Медицинская справка PDF"
+                                                className="modal-file-preview pdf-preview"
+                                            />
+                                        )}
+
+                                        {!isPreviewLoading && !previewError && previewType !== 'pdf' && previewUrl && (
+                                            <img
+                                                src={previewUrl}
+                                                alt="Медицинская справка"
+                                                className="modal-file-preview"
+                                            />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
 
                             <div className="modal-right">
                                 <div className="info-block">
                                     <h4>Данные студента</h4>
                                     <div className="info-grid">
-                                        {/* Обращаемся к вложенному объекту User */}
-                                            <span>ФИО</span> 
+                                        <span>ФИО</span>
                                         <span>{selectedCert.user?.userName || selectedCert.user?.name || 'Данные отсутствуют'}</span>
-                                        
-                                        {/* 2. Проверьте iin (все маленькие) */}
-                                        <span>ИИН</span> 
+
+                                        <span>ИИН</span>
                                         <span>{selectedCert.user?.iin || 'Данные отсутствуют'}</span>
-                                        {/*<span>Институт</span> <span>{selectedCert.user?.institute || '****'}</span>*/}
-                                        {/*<span>Группа</span> <span>{selectedCert.user?.group || '****'}</span>*/}
                                     </div>
                                 </div>
 
@@ -201,7 +269,6 @@ const RegistrarPage = () => {
                                         <p>{selectedCert.clinic || '****'}</p>
                                         
                                         <p className="info-label">Комментарий студента</p>
-                                        {/* В модели это свойство Comment */}
                                         <p>{selectedCert.comment || '****'}</p>
                                     </div>
                                 </div>
@@ -209,20 +276,20 @@ const RegistrarPage = () => {
                                 {activeTab === 'vkhodyashie' ? (
                                     <div className="info-block action-block">
                                         <h4>Действие</h4>
-                                        <textarea 
-                                            placeholder="Комментарий регистратора" 
+                                        <textarea
+                                            placeholder="Комментарий регистратора"
                                             value={registrarComment}
                                             onChange={(e) => setRegistrarComment(e.target.value)}
                                         ></textarea>
                                         <div className="modal-actions">
-                                            <button 
-                                                className="btn-reject" 
+                                            <button
+                                                className="btn-reject"
                                                 onClick={() => handleAction(selectedCert.id, 'reject')}
                                             >
                                                 Отклонить
                                             </button>
-                                            <button 
-                                                className="btn-approve" 
+                                            <button
+                                                className="btn-approve"
                                                 onClick={() => handleAction(selectedCert.id, 'approve')}
                                             >
                                                 Подтвердить
