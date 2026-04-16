@@ -8,7 +8,7 @@
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
     width: 100%;
-    box-sizing: border-box; /* Добавьте это */
+    box-sizing: border-box;
 }
 
 .title_text_block {
@@ -171,4 +171,21 @@
         z-index: 1;
 
     }
+}
+/* Пример кастомизации под стиль Satbayev */
+.Toastify__toast--error {
+    border: 1px solid #ff4d4f;
+    background: #fff2f0;
+    color: #000;
+}
+
+.Toastify__toast--success {
+    border: 1px solid #52c41a;
+    background: #f6ffed;
+    color: #000;
+}
+
+/* Скрываем стандартную иконку, если хотим чистый текст как в системе */
+.Toastify__toast-icon {
+    width: 20px;
 }

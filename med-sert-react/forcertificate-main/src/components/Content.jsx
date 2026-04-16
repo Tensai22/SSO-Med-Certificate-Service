@@ -1,6 +1,8 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../css/Content.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function Content() {
     const [activeTab, setActiveTab] = useState('справка');
@@ -21,13 +23,20 @@ function Content() {
 
     const fetchCertificates = async () => {
         try {
-            const response = await axios.get('http://localhost:5280/api/Certificate');
-        
-            console.log("DATA FROM BACKEND:", response.data);
+            // Достаем ID текущего пользователя
+            const userId = localStorage.getItem('userId'); 
+            
+            if (!userId) {
+                console.error("Пользователь не авторизован");
+                return;
+            }
+
+            // Вызываем новый эндпоинт: /api/Certificate/user/ID
+            const response = await axios.get(`http://localhost:5280/api/Certificate/user/${userId}`);
             
             setCertificates(response.data);
         } catch (error) {
-            console.error("Ошибка при загрузке статусов:", error);
+            console.error("Ошибка при загрузке ваших справок:", error);
         }
     };
 
@@ -35,10 +44,19 @@ function Content() {
     const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
     const handleSubmit = async () => {
+        // 1. Достаем реальный ID пользователя
+        const currentUserId = localStorage.getItem('userId');
+
         if (!file || !formData.dateFrom || !formData.dateTo) {
-            alert("Заполните все поля и выберите файл");
+            toast.error("Заполните все поля и выберите файл");
             return;
         }
+        
+        if (!currentUserId) {
+            toast.error("Ошибка авторизации. Пожалуйста, войдите в систему снова.");
+            return;
+        }
+
         try {
             const fileData = new FormData();
             fileData.append('File', file); 
@@ -46,7 +64,7 @@ function Content() {
             const fileId = fileResponse.data.id;
 
             const certificateRequest = {
-                UserId: 1,
+                UserId: parseInt(currentUserId), 
                 StartDate: formData.dateFrom, 
                 EndDate: formData.dateTo,
                 Clinic: formData.institution,
@@ -57,30 +75,41 @@ function Content() {
             };
 
             await axios.post('http://localhost:5280/api/Certificate', certificateRequest);
-            alert("Справка успешно отправлена!");
+            toast.success("Справка успешно отправлена!");
             setActiveTab('статус');
         } catch (error) {
-            alert("Ошибка при отправке");
+            const errorMsg = error.response?.data?.title || "Ошибка при отправке";
+            toast.error(errorMsg);
         }
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-    
-        return `${day}-${month}-${year}`;
+        
+        // 'ru-RU' гарантирует формат ДД.ММ.ГГГГ
+        return date.toLocaleDateString('ru-RU');
     };
 
     return (
         <div className="page-container">
+            
             <aside className="sidebar">
                 <button className={activeTab === 'справка' ? 'active' : ''} onClick={() => setActiveTab('справка')}>Справка</button>
                 <button className={activeTab === 'статус' ? 'active' : ''} onClick={() => setActiveTab('статус')}>Статус</button>
             </aside>
-
+            <ToastContainer 
+                position="top-right"
+                autoClose={4000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+            />
             <main className="main-content">
                 {/* ВКЛАДКА: ДОБАВИТЬ СПРАВКУ */}
                 {activeTab === 'справка' && (

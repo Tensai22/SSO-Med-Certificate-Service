@@ -1,4 +1,4 @@
-﻿// src/components/MainPage.jsx
+// src/components/MainPage.jsx
 import React from 'react';
 import Content from '../components/Content';
 
