@@ -1,7 +1,9 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace MedicalCertificate.WebAPI.Contracts;
 
 public class RejectCertificateRequest
 {
-    public int RejectedByUserId { get; set; }
+    [StringLength(1000)]
     public string Comment { get; set; } = string.Empty;
 }

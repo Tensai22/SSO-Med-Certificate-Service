@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from './routes/ProtectedRoute';
 import { Navigate } from 'react-router-dom';
 import RoleBasedRedirect from './routes/RoleBasedRedirect';
+import { ROLES } from './constants/roles';
 
 function AppContent() {
     const location = useLocation();
@@ -22,13 +23,13 @@ function AppContent() {
                 <Route path="/" element={<RoleBasedRedirect />} />
 
                 <Route path="/sertificate" element={
-                    <ProtectedRoute allowedRoles={[2]}>
+                    <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
                         <MainPage />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/registrar" element={
-                    <ProtectedRoute allowedRoles={[1]}>
+                    <ProtectedRoute allowedRoles={[ROLES.REGISTRAR]}>
                         <RegistrarPage />
                     </ProtectedRoute>
                 } />

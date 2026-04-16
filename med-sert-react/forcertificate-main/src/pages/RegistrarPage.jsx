@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import '../css/RegistrarPage.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,17 +9,27 @@ import {
 } from '../services/certificateService';
 import { buildFileUrl, downloadFileById } from '../services/fileService';
 
+const PAGE_SIZE = 30;
+const INITIAL_SEARCH_FILTERS = {
+    fullName: '',
+    iin: '',
+    clinic: '',
+    studentComment: '',
+    registrarComment: '',
+};
+
 const RegistrarPage = () => {
     const [activeTab, setActiveTab] = useState('vkhodyashie');
     const [certificates, setCertificates] = useState([]);
     const [selectedCert, setSelectedCert] = useState(null);
     const [registrarComment, setRegistrarComment] = useState('');
+    const [searchFilters, setSearchFilters] = useState(INITIAL_SEARCH_FILTERS);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
     const [previewUrl, setPreviewUrl] = useState('');
     const [previewType, setPreviewType] = useState('');
     const [previewError, setPreviewError] = useState('');
     const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-
-    const registrarId = 1;
 
     const fetchCertificates = useCallback(async () => {
         try {
@@ -83,13 +93,10 @@ const RegistrarPage = () => {
     const handleAction = async (id, action) => {
         try {
             if (action === 'approve') {
-                await approveCertificate(id, {
-                    approvedByUserId: registrarId,
-                });
+                await approveCertificate(id);
                 toast.success('Справка подтверждена');
             } else {
                 await rejectCertificate(id, {
-                    rejectedByUserId: registrarId,
                     comment: registrarComment || 'Не соответствует требованиям',
                 });
                 toast.success('Справка отклонена');
@@ -123,18 +130,83 @@ const RegistrarPage = () => {
         setIsPreviewLoading(false);
     };
 
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setSearchFilters({ ...INITIAL_SEARCH_FILTERS });
+        setStatusFilter('all');
+        setCurrentPage(1);
+    };
+
+    const filteredCertificates = useMemo(() => {
+        return certificates.filter((cert) => {
+            const isIncomingTab = activeTab === 'vkhodyashie';
+            const matchesStatus = isIncomingTab || statusFilter === 'all' || String(cert.statusId) === statusFilter;
+            if (!matchesStatus) {
+                return false;
+            }
+
+            const fullName = (cert.user?.userName || cert.user?.name || '').toLowerCase();
+            const iin = (cert.user?.iin || '').toLowerCase();
+            const clinic = (cert.clinic || '').toLowerCase();
+            const studentComment = (cert.comment || '').toLowerCase();
+            const reviewerComment = (cert.reviewerComment || '').toLowerCase();
+
+            const normalizedFullName = searchFilters.fullName.trim().toLowerCase();
+            const normalizedIin = searchFilters.iin.trim().toLowerCase();
+            const normalizedClinic = searchFilters.clinic.trim().toLowerCase();
+            const normalizedStudentComment = searchFilters.studentComment.trim().toLowerCase();
+            const normalizedRegistrarComment = searchFilters.registrarComment.trim().toLowerCase();
+
+            const matchesFullName = !normalizedFullName || fullName.includes(normalizedFullName);
+            const matchesIin = !normalizedIin || iin.includes(normalizedIin);
+            const matchesClinic = !normalizedClinic || clinic.includes(normalizedClinic);
+            const matchesStudentComment = !normalizedStudentComment || studentComment.includes(normalizedStudentComment);
+            const matchesRegistrarComment = !normalizedRegistrarComment || reviewerComment.includes(normalizedRegistrarComment);
+
+            return matchesFullName
+                && matchesIin
+                && matchesClinic
+                && matchesStudentComment
+                && matchesRegistrarComment;
+        });
+    }, [certificates, searchFilters, statusFilter, activeTab]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredCertificates.length / PAGE_SIZE));
+
+    const paginatedCertificates = useMemo(() => {
+        const startIndex = (currentPage - 1) * PAGE_SIZE;
+        return filteredCertificates.slice(startIndex, startIndex + PAGE_SIZE);
+    }, [filteredCertificates, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchFilters, statusFilter, activeTab]);
+
+    const updateSearchFilter = (field, value) => {
+        setSearchFilters((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
     return (
         <div className="page-container">
             <aside className="sidebar">
                 <button
                     className={activeTab === 'vkhodyashie' ? 'active' : ''}
-                    onClick={() => setActiveTab('vkhodyashie')}
+                    onClick={() => handleTabChange('vkhodyashie')}
                 >
                     Входящие данные
                 </button>
                 <button
                     className={activeTab === 'istoriya' ? 'active' : ''}
-                    onClick={() => setActiveTab('istoriya')}
+                    onClick={() => handleTabChange('istoriya')}
                 >
                     История
                 </button>
@@ -157,6 +229,55 @@ const RegistrarPage = () => {
                     <h2 className="form-title">
                         {activeTab === 'vkhodyashie' ? 'Новые справки на проверку' : 'История обработанных справок'}
                     </h2>
+
+                    <div className="registrar-filters">
+                        <input
+                            className="registrar-filter-input"
+                            type="text"
+                            placeholder="ФИО"
+                            value={searchFilters.fullName}
+                            onChange={(e) => updateSearchFilter('fullName', e.target.value)}
+                        />
+                        <input
+                            className="registrar-filter-input"
+                            type="text"
+                            placeholder="ИИН"
+                            value={searchFilters.iin}
+                            onChange={(e) => updateSearchFilter('iin', e.target.value)}
+                        />
+                        <input
+                            className="registrar-filter-input"
+                            type="text"
+                            placeholder="Учреждение"
+                            value={searchFilters.clinic}
+                            onChange={(e) => updateSearchFilter('clinic', e.target.value)}
+                        />
+                        <input
+                            className="registrar-filter-input"
+                            type="text"
+                            placeholder="Комментарий студента"
+                            value={searchFilters.studentComment}
+                            onChange={(e) => updateSearchFilter('studentComment', e.target.value)}
+                        />
+                        <input
+                            className="registrar-filter-input"
+                            type="text"
+                            placeholder="Комментарий регистратора"
+                            value={searchFilters.registrarComment}
+                            onChange={(e) => updateSearchFilter('registrarComment', e.target.value)}
+                        />
+                        {activeTab !== 'vkhodyashie' && (
+                            <select
+                                className="registrar-status-select"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="all">Все статусы</option>
+                                <option value="2">Принято</option>
+                                <option value="3">Отклонено</option>
+                            </select>
+                        )}
+                    </div>
                     
                     <table className="status-table">
                         <thead>
@@ -168,7 +289,7 @@ const RegistrarPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {certificates.length > 0 ? certificates.map((cert) => (
+                            {filteredCertificates.length > 0 ? paginatedCertificates.map((cert) => (
                                 <tr key={cert.id}>
                                     <td>{cert.createdAt ? formatDate(cert.createdAt) : '.'}</td>
                                     <td>{cert.clinic}</td>
@@ -190,11 +311,33 @@ const RegistrarPage = () => {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>Справок нет</td>
+                                    <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>Справки не найдены</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+
+                    {filteredCertificates.length > 0 && (
+                        <div className="pagination-container">
+                            <button
+                                type="button"
+                                className="pagination-btn"
+                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Назад
+                            </button>
+                            <span className="pagination-info">Страница {currentPage} из {totalPages}</span>
+                            <button
+                                type="button"
+                                className="pagination-btn"
+                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Вперед
+                            </button>
+                        </div>
+                    )}
                 </div>
             </main>
 

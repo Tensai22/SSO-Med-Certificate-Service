@@ -2,6 +2,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import '../css/Header.css'
+import { ROLES } from '../constants/roles';
+import { clearAuthStorage, getStoredUser } from '../utils/auth';
 
 function Header() {
     const navigate = useNavigate();
@@ -9,22 +11,15 @@ function Header() {
     const [userRole, setUserRole] = useState('');
 
     useEffect(() => {
-        // Получаем данные пользователя из localStorage
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            const user = JSON.parse(userData);
-            // Здесь нужно получить имя пользователя из ваших данных
-            // Если в user нет имени, можно сделать отдельный запрос к API
+        const user = getStoredUser();
+        if (user) {
             setUserName(user.userName || user.email || 'Пользователь');
-            setUserRole(user.roleId === 1 ? 'Регистратура' : 'Бакалавриат');
+            setUserRole(user.roleId === ROLES.REGISTRAR ? 'Регистратура' : 'Бакалавриат');
         }
     }, []);
 
     const handleLogout = () => {
-        // Очищаем localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        // Перенаправляем на страницу логина
+        clearAuthStorage();
         navigate('/login');
     };
 

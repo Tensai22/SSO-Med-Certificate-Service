@@ -22,7 +22,8 @@ namespace MedicalCertificate.Application.DTOs
         }
         public int Id { get; set; }
         public string UserName { get; set; } = null!;
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
         public int RoleId { get; set; }
         public string RoleName { get; set; } = null!;
         public string IIN { get; set; } = string.Empty;

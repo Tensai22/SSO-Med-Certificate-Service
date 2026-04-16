@@ -39,7 +39,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtProvider jw
 {
     public async Task<Result<AuthResponseDto>> Handle(LoginCommand request, CancellationToken ct)
     {
-        var user = await userRepository.GetByEmailAsync(request.Email);
+        var user = await userRepository.GetByEmailWithRoleAsync(request.Email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {

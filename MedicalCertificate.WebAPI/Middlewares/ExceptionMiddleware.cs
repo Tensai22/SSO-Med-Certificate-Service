@@ -1,34 +1,36 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 
-namespace MedicalCertificate.WebAPI.Middlewares
+namespace MedicalCertificate.WebAPI.Middlewares;
+
+public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
 {
-    public class ExceptionMiddleware(RequestDelegate next)
+    public async Task Invoke(HttpContext context)
     {
-        public async Task Invoke(HttpContext context)
+        try
         {
-            try
-            {
-                await next(context);
-            }
-            catch (Exception ex)
-            {
-                await HandleExceptionAsync(context, ex);
-            }
+            await next(context);
         }
-
-        private Task HandleExceptionAsync(HttpContext context, Exception exception)
+        catch (Exception ex)
         {
-            var code = HttpStatusCode.InternalServerError;
-
-            var result = JsonSerializer.Serialize(new
-            {
-                error = exception.Message,
-            });
-
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)code;
-            return context.Response.WriteAsync(result);
+            await HandleExceptionAsync(context, ex);
         }
+    }
+
+    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        var errorId = Guid.NewGuid().ToString("N");
+        logger.LogError(exception, "Unhandled exception. ErrorId: {ErrorId}", errorId);
+
+        var result = JsonSerializer.Serialize(new
+        {
+            title = "Internal Server Error",
+            detail = "Произошла внутренняя ошибка сервера.",
+            errorId
+        });
+
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        return context.Response.WriteAsync(result);
     }
 }

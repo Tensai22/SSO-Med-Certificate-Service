@@ -12,9 +12,9 @@ namespace MedicalCertificate.Application.Interfaces;
     {
         Task<IEnumerable<Certificate>> GetAllWithStatusAsync();
         Task<List<Certificate>> GetByUserIdAsync(int userId);
+        Task<Certificate?> GetByFilePathIdAsync(int filePathId);
         Task<Certificate?> GetByIdWithStatusAsync(int id);
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
         Task<Result> UpdateAsync(Certificate certificate);
         Task RemoveAsync(Certificate certificate);
     }
-

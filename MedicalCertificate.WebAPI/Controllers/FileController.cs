@@ -1,11 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using MedicalCertificate.Application.Interfaces;
 using MedicalCertificate.Application.DTOs;
+using MedicalCertificate.Application.Interfaces;
 using MedicalCertificate.Domain.Entities;
+using MedicalCertificate.Infrastructure.Services;
+using MedicalCertificate.WebAPI.Security;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace MedicalCertificate.WebAPI.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class FileController : ControllerBase
 {
@@ -18,11 +23,19 @@ public class FileController : ControllerBase
 
     private readonly IFileStorageService _fileStorage;
     private readonly IFileRepository _fileRepository;
+    private readonly ICertificateRepository _certificateRepository;
+    private readonly MinioOptions _minioOptions;
 
-    public FileController(IFileStorageService fileStorage, IFileRepository fileRepository)
+    public FileController(
+        IFileStorageService fileStorage,
+        IFileRepository fileRepository,
+        ICertificateRepository certificateRepository,
+        IOptions<MinioOptions> minioOptions)
     {
         _fileStorage = fileStorage;
         _fileRepository = fileRepository;
+        _certificateRepository = certificateRepository;
+        _minioOptions = minioOptions.Value;
     }
 
     [HttpPost("upload")]
@@ -30,7 +43,9 @@ public class FileController : ControllerBase
     public async Task<IActionResult> Upload([FromForm] FileUploadRequest request)
     {
         if (request.File is null || request.File.Length == 0)
+        {
             return BadRequest("Файл не выбран");
+        }
 
         var safeFileName = Path.GetFileName(request.File.FileName);
         var fileExtension = Path.GetExtension(safeFileName);
@@ -38,7 +53,9 @@ public class FileController : ControllerBase
         var isAllowedContentType = AllowedPdfContentTypes.Contains(request.File.ContentType);
 
         if (!isPdfExtension || !isAllowedContentType)
+        {
             return BadRequest("Допускаются только PDF файлы");
+        }
 
         var objectKey = $"{Guid.NewGuid():N}.pdf";
 
@@ -54,7 +71,7 @@ public class FileController : ControllerBase
             ContentType = "application/pdf",
             FileType = ".pdf",
             Size = request.File.Length,
-            Bucket = "medical-files",
+            Bucket = string.IsNullOrWhiteSpace(_minioOptions.BucketName) ? "medical-files" : _minioOptions.BucketName,
             ObjectKey = objectKey,
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow
@@ -66,6 +83,7 @@ public class FileController : ControllerBase
     }
 
     [HttpGet("download/{fileName}")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
     public async Task<IActionResult> Download(string fileName)
     {
         var stream = await _fileStorage.DownloadAsync(fileName);
@@ -73,28 +91,46 @@ public class FileController : ControllerBase
     }
 
     [HttpDelete("delete/{fileName}")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
     public async Task<IActionResult> Delete(string fileName)
     {
         var file = await _fileRepository.GetByNameAsync(fileName);
         if (file == null)
+        {
             return NotFound("Файл не найден");
+        }
 
         file.IsDeleted = true;
         await _fileRepository.UpdateAsync(file);
 
         return Ok($"Файл {fileName} помечен как удалён");
     }
-    [HttpGet("{id}")]
+
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetFileById(int id)
     {
         var file = await _fileRepository.GetByIdAsync(id);
-
         if (file == null || file.IsDeleted)
+        {
             return NotFound("Файл не найден");
+        }
+
+        if (!User.IsInRole(RoleNames.OfficeRegistrar))
+        {
+            var userId = User.GetCurrentUserId();
+            if (!userId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            var certificate = await _certificateRepository.GetByFilePathIdAsync(id);
+            if (certificate == null || certificate.UserId != userId.Value)
+            {
+                return Forbid();
+            }
+        }
 
         var stream = await _fileStorage.DownloadAsync(file.ObjectKey);
-
         return File(stream, file.ContentType ?? "application/octet-stream", enableRangeProcessing: true);
     }
-
 }

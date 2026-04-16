@@ -12,7 +12,14 @@ public class CreateUserCommandHandler(IUserService userService,ILogger<CreateUse
     public async Task<Result<UserDto>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Отправил запрос на создание клиента");
-        var result = await userService.CreateAsync(new(request.UserName, request.RoleId, string.Empty),cancellationToken);
+        var result = await userService.CreateAsync(new UserDto
+        {
+            UserName = request.UserName,
+            Email = request.Email,
+            Password = request.Password,
+            RoleId = request.RoleId,
+            IIN = request.IIN
+        }, cancellationToken);
 
         if (result.IsFailed)
         {

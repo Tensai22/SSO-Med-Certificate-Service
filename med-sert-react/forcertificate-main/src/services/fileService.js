@@ -1,6 +1,4 @@
-import apiClient from './apiClient';
-
-const apiHost = 'http://localhost:5280/api';
+import apiClient, { API_BASE_URL } from './apiClient';
 
 export const uploadCertificateFile = async (file) => {
     const formData = new FormData();
@@ -18,4 +16,4 @@ export const downloadFileById = async (fileId) => {
     return response.data;
 };
 
-export const buildFileUrl = (fileId) => `${apiHost}/File/${fileId}`;
+export const buildFileUrl = (fileId) => `${API_BASE_URL}/File/${fileId}`;

@@ -18,6 +18,6 @@
         stopwatch.Stop();
         var elapsedMs = stopwatch.ElapsedMilliseconds;
 
-        _logger.LogInformation($"Request {context.Request.Path} took {elapsedMs} ms");
+        _logger.LogInformation("Request {Path} took {ElapsedMs} ms", context.Request.Path, elapsedMs);
     }
 }

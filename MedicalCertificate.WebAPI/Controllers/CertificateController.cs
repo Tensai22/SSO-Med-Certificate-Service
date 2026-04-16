@@ -1,53 +1,69 @@
-﻿using MedicalCertificate.Application.CQRS.Commands;
+using MedicalCertificate.Application.CQRS.Commands;
 using MedicalCertificate.Application.CQRS.Queries;
 using MedicalCertificate.WebAPI.Contracts;
+using MedicalCertificate.WebAPI.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace MedicalCertificate.WebAPI.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Authorize]
+[Route("api/[controller]")]
 public class CertificateController(ILogger<CertificateController> logger) : BaseController
 {
     [HttpGet]
-    [HttpGet]
-    public async Task<IActionResult> Get([FromQuery] int? statusId) 
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    public async Task<IActionResult> Get([FromQuery] int? statusId)
     {
         var result = await mediator.Send(new GetCertificateQuery(statusId));
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok(result.Value);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await mediator.Send(new GetCertificateByIdQuery(id));
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok(result.Value);
     }
 
-    [HttpGet("user/{userId}")]
+    [HttpGet("user/{userId:int}")]
     public async Task<IActionResult> GetByUserId(int userId)
     {
-        var result = await mediator.Send(new GetCertificatesByUserIdQuery(userId));
+        var currentUserId = User.GetCurrentUserId();
+        if (!User.IsInRole(RoleNames.OfficeRegistrar) && currentUserId != userId)
+        {
+            return Forbid();
+        }
 
+        var result = await mediator.Send(new GetCertificatesByUserIdQuery(userId));
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok(result.Value);
     }
 
-    [HttpGet("{id}/history")]
+    [HttpGet("{id:int}/history")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
     public async Task<IActionResult> GetHistory(int id)
     {
         var result = await mediator.Send(new GetCertificateHistoryByCertificateIdQuery(id));
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok(result.Value);
     }
@@ -55,9 +71,19 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateCertificateRequest request)
     {
+        var currentUserId = User.GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var targetUserId = User.IsInRole(RoleNames.OfficeRegistrar)
+            ? request.UserId
+            : currentUserId.Value;
+
         var command = new CreateCertificateCommand
         {
-            UserId = request.UserId,
+            UserId = targetUserId,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             Clinic = request.Clinic,
@@ -70,12 +96,15 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
         var result = await mediator.Send(command);
 
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
     public async Task<IActionResult> Put(int id, [FromBody] UpdateCertificateRequest request)
     {
         var command = new UpdateCertificateCommand
@@ -93,50 +122,72 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
         };
 
         var result = await mediator.Send(command);
-
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok(result.Value);
     }
 
-    [HttpPost("{id}/approve")]
-    public async Task<IActionResult> Approve(int id, [FromBody] ApproveCertificateRequest request)
+    [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    public async Task<IActionResult> Approve(int id)
     {
-        var scope = new Dictionary<string, int>()
+        var actorUserId = User.GetCurrentUserId();
+        if (!actorUserId.HasValue)
         {
-            { "CertificateId", request.ApprovedByUserId }
-        };
-        using (logger.BeginScope(scope))
+            return Unauthorized();
+        }
+
+        using (logger.BeginScope(new Dictionary<string, int>
+               {
+                   { "CertificateId", id },
+                   { "ActorUserId", actorUserId.Value }
+               }))
         {
-            var command = new ApproveCertificateCommand(id, request.ApprovedByUserId);
+            var command = new ApproveCertificateCommand(id, actorUserId.Value);
             var result = await mediator.Send(command);
 
             if (result.IsFailed)
+            {
                 return GenerateProblemResponse(result.Error);
+            }
 
             return Ok("Справка подтверждена");
         }
     }
 
-    [HttpPost("{id}/reject")]
+    [HttpPost("{id:int}/reject")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
     public async Task<IActionResult> Reject(int id, [FromBody] RejectCertificateRequest request)
     {
-        var command = new RejectCertificateCommand(id, request.RejectedByUserId, request.Comment);
+        var actorUserId = User.GetCurrentUserId();
+        if (!actorUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var command = new RejectCertificateCommand(id, actorUserId.Value, request.Comment);
         var result = await mediator.Send(command);
 
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok("Справка отклонена");
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = RoleNames.OfficeRegistrar)]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await mediator.Send(new DeleteCertificateCommand(id));
         if (result.IsFailed)
+        {
             return GenerateProblemResponse(result.Error);
+        }
 
         return Ok("Справка удалена");
     }

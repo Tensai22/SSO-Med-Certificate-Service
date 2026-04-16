@@ -4,6 +4,8 @@ import '../css/LoginPage.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { login as loginUser } from '../services/authService';
+import { ROLES } from '../constants/roles';
+import { saveAuthData } from '../utils/auth';
 
 const LoginPage = () => {
     const [login, setLogin] = useState('');
@@ -19,6 +21,7 @@ const LoginPage = () => {
             const data = await loginUser({ email: fullEmail, password });
             const actualId = data.userId || data.UserId || data.id || data.Id;
             const roleId = data.roleId || data.RoleId;
+            const token = data.token || data.Token;
 
             if (!actualId) {
                 toast.error('Ошибка данных сервера. ID пользователя не найден.');
@@ -30,14 +33,23 @@ const LoginPage = () => {
                 return;
             }
 
-            localStorage.setItem('userId', actualId.toString());
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify({
+            if (!token) {
+                toast.error('Ошибка данных сервера. Токен авторизации не найден.');
+                return;
+            }
+
+            saveAuthData({
+                token,
+                userId: actualId,
+                user: {
                 roleId,
                 email: fullEmail,
-            }));
+                roleName: data.roleName || data.RoleName || '',
+                userName: data.userName || data.UserName || fullEmail,
+                },
+            });
 
-            navigate(roleId === 1 ? '/registrar' : '/sertificate');
+            navigate(roleId === ROLES.REGISTRAR ? '/registrar' : '/sertificate');
         } catch (error) {
             console.error('Ошибка при запросе:', error);
             const errorMessage = error.response?.data?.title || 'Неверный логин или пароль';

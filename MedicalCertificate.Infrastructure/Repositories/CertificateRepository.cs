@@ -64,6 +64,12 @@ public class CertificateRepository : Repository<Certificate>, ICertificateReposi
             .Where(c => c.UserId == userId)
             .ToListAsync();
     }
+
+    public async Task<Certificate?> GetByFilePathIdAsync(int filePathId)
+    {
+        return await _context.Certificates.FirstOrDefaultAsync(c => c.FilePathId == filePathId);
+    }
+
     public async Task<IEnumerable<Certificate>> GetAllAsync()
     {
         return await _context.Certificates

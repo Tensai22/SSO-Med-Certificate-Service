@@ -144,6 +144,30 @@ input::placeholder {
     margin-top: 10px;
 }
 
+.registrar-filters {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.registrar-filter-input {
+    flex: 1 1 220px;
+    min-width: 220px;
+}
+
+.registrar-status-select {
+    flex: 1 1 220px;
+    min-width: 200px;
+    padding: 10px 15px;
+    border: 1px solid #a3b2cc;
+    border-radius: 6px;
+    color: #555;
+    outline: none;
+    background-color: #fff;
+}
+
 .status-table th {
     text-align: left;
     color: #025ba9;
@@ -157,6 +181,40 @@ input::placeholder {
     border-bottom: 1px solid #f0f4f8;
     font-size: 14px;
     color: #444;
+}
+
+.pagination-container {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-btn {
+    padding: 8px 14px;
+    border: 1px solid #025ba9;
+    background: #fff;
+    color: #025ba9;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #025ba9;
+    color: #fff;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: #025ba9;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 /* Бейджи статусов */

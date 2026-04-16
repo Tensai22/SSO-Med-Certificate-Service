@@ -1,7 +1,6 @@
-﻿using MedicalCertificate.Application.DTOs;
+using MedicalCertificate.Application.DTOs;
 using MedicalCertificate.Application.Interfaces;
 using MedicalCertificate.Domain.Constants;
-using MedicalCertificate.Application.Services;
 using KDS.Primitives.FluentResult;
 using MediatR;
 
@@ -16,6 +15,15 @@ public class GetCertificateQueryHandler(ICertificateService certificateService) 
         if (result.IsFailed)
             return Result.Failure<CertificateDto[]>(new Error(ErrorCode.NotFound, "Справок нет."));
 
-        return result;
+        if (!request.StatusId.HasValue)
+        {
+            return result;
+        }
+
+        var filtered = result.Value
+            .Where(certificate => certificate.StatusId == request.StatusId.Value)
+            .ToArray();
+
+        return Result.Success(filtered);
     }
 }

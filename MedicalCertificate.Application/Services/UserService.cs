@@ -3,6 +3,7 @@ using MedicalCertificate.Application.Interfaces;
 using MedicalCertificate.Domain.Constants;
 using MedicalCertificate.Domain.Entities;
 using KDS.Primitives.FluentResult;
+using BC = BCrypt.Net.BCrypt;
 
 namespace MedicalCertificate.Application.Services;
 
@@ -74,6 +75,16 @@ public class UserService : IUserService
 
         public async Task<Result<UserDto>> CreateAsync(UserDto userDto, CancellationToken cancellationToken)
         {
+                if (string.IsNullOrWhiteSpace(userDto.Email))
+                {
+                    return Result.Failure<UserDto>(new Error(ErrorCode.Validation, "Email обязателен."));
+                }
+
+                if (string.IsNullOrWhiteSpace(userDto.Password) || userDto.Password.Length < 6)
+                {
+                    return Result.Failure<UserDto>(new Error(ErrorCode.Validation, "Пароль должен содержать минимум 6 символов."));
+                }
+
                 var existingUser = await _userRepository.GetByEmailAsync(userDto.Email);
                 if (existingUser is not null)
                 {
@@ -84,12 +95,16 @@ public class UserService : IUserService
                 var user = new User
                 {
                     UserName = userDto.UserName,
-                    RoleId = userDto.RoleId
+                    Email = userDto.Email,
+                    RoleId = userDto.RoleId,
+                    IIN = string.IsNullOrWhiteSpace(userDto.IIN) ? "000000000000" : userDto.IIN,
+                    PasswordHash = BC.HashPassword(userDto.Password)
                 };
 
                 await _userRepository.AddAsync(user);
 
                 userDto.Id = user.Id;
+                userDto.Password = string.Empty;
 
 
                 return Result.Success(userDto);
@@ -104,10 +119,15 @@ public class UserService : IUserService
                 return Result.Failure<UserDto>(new Error(ErrorCode.NotFound, $"Пользователь с ID {id} не найден."));
             }
 
-            var existingUser = await _userRepository.GetByEmailAsync(userDto.Email);
-            if (existingUser is not null && existingUser.Id != id)
+            if (!string.IsNullOrWhiteSpace(userDto.Email))
             {
-                return Result.Failure<UserDto>(new Error(ErrorCode.Conflict, "Пользователь с таким именем уже существует."));
+                var existingUser = await _userRepository.GetByEmailAsync(userDto.Email);
+                if (existingUser is not null && existingUser.Id != id)
+                {
+                    return Result.Failure<UserDto>(new Error(ErrorCode.Conflict, "Пользователь с таким email уже существует."));
+                }
+
+                user.Email = userDto.Email;
             }
 
 

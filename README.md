@@ -13,3 +13,17 @@ minio server C:\minio-data
 React:
 # Запуск React.js проекта
 npm start server
+
+## Configuration
+
+### Backend (`MedicalCertificate.WebAPI/appsettings.json`)
+- Укажите безопасные значения для:
+  - `ConnectionStrings:DefaultConnection`
+  - `JwtConfigurationOptions:Key`
+  - `Minio:AccessKey`
+  - `Minio:SecretKey`
+- Настройте CORS в `Cors:AllowedOrigins`.
+
+### Frontend (`med-sert-react/forcertificate-main/.env`)
+- Создайте `.env` из `.env.example`.
+- Укажите `REACT_APP_API_BASE_URL`.

@@ -15,14 +15,11 @@
         <PackageReference Include="KDS.Primitives.FluentResult" Version="1.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.11" />
         <PackageReference Include="MediatR" Version="12.5.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
         <ProjectReference Include="..\MedicalCertificate.Domain\MedicalCertificate.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="Microsoft.AspNetCore.Authentication">
-        <HintPath>..\..\..\..\..\..\..\Program Files\dotnet\packs\Microsoft.AspNetCore.App.Ref\8.0.8\ref\net8.0\Microsoft.AspNetCore.Authentication.dll</HintPath>
-      </Reference>
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
 
 </Project>

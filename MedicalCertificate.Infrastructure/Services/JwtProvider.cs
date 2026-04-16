@@ -18,8 +18,11 @@ public class JwtProvider(IOptions<JwtConfigurationOptions> options) : IJwtProvid
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.Role, user.Role?.Name ?? "User")
+            new(ClaimTypes.Role, user.Role?.Name ?? "User"),
+            new("roleId", user.RoleId.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));

@@ -15,8 +15,8 @@ export const createCertificate = async (certificateRequest) => {
     return response.data;
 };
 
-export const approveCertificate = async (certificateId, payload) => {
-    const response = await apiClient.post(`/Certificate/${certificateId}/approve`, payload);
+export const approveCertificate = async (certificateId) => {
+    const response = await apiClient.post(`/Certificate/${certificateId}/approve`);
     return response.data;
 };
 
