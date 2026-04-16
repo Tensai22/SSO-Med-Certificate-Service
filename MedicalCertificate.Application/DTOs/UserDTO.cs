@@ -13,6 +13,7 @@ namespace MedicalCertificate.Application.DTOs
             UserName = userName;
             RoleId = roleId;
             RoleName = roleName;
+
         }
 
         public UserDto()
@@ -24,5 +25,6 @@ namespace MedicalCertificate.Application.DTOs
         public string Email { get; set; }
         public int RoleId { get; set; }
         public string RoleName { get; set; } = null!;
+        public string IIN { get; set; } = string.Empty;
     }
 }

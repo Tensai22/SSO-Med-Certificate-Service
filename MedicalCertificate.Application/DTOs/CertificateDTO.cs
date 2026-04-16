@@ -12,4 +12,5 @@
         public int StatusId { get; set; }
         public string ReviewerComment { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public UserDto? User { get; set; }
     }

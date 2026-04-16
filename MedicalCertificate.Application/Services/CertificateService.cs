@@ -64,7 +64,16 @@ public class CertificateService : ICertificateService
                 FilePathId = certificate.FilePathId,
                 StatusId = certificate.StatusId,
                 ReviewerComment = certificate.ReviewerComment,
-                CreatedAt = certificate.CreatedAt
+                CreatedAt = certificate.CreatedAt,
+
+                // И СЮДА ТОЖЕ:
+                User = certificate.User != null ? new UserDto
+                {
+                    Id = certificate.User.Id,
+                    UserName = certificate.User.UserName,
+                    IIN = certificate.User.IIN,
+                    Email = certificate.User.Email
+                } : null
             };
 
             return dto;
@@ -72,11 +81,13 @@ public class CertificateService : ICertificateService
 
         public async Task<Result<CertificateDto[]>> GetAllAsync()
         {
+            // 1. Получаем справки (Убедитесь, что репозиторий подгружает .Include(u => u.User))
             var certificates = await _certificateRepository.GetAllAsync();
 
             if (!certificates.Any())
                 return Result.Failure<CertificateDto[]>(new Error(ErrorCode.NotFound, "Справок нет."));
 
+            // 2. Добавляем создание UserDto внутри Select
             var result = certificates.Select(c => new CertificateDto
             {
                 Id = c.Id,
@@ -88,13 +99,22 @@ public class CertificateService : ICertificateService
                 FilePathId = c.FilePathId,
                 StatusId = c.StatusId,
                 ReviewerComment = c.ReviewerComment,
-                CreatedAt = c.CreatedAt
+                CreatedAt = c.CreatedAt,
+
+                // ВОТ ЭТО НУЖНО ДОБАВИТЬ:
+                User = c.User != null ? new UserDto
+                {
+                    Id = c.User.Id,
+                    UserName = c.User.UserName,
+                    IIN = c.User.IIN, // Теперь ИИН попадет в DTO
+                    Email = c.User.Email
+                } : null
             }).ToArray();
 
             return result;
         }
 
-        public async Task<Result<CertificateDto>> UpdateAsync(int id, CertificateDto dto)
+    public async Task<Result<CertificateDto>> UpdateAsync(int id, CertificateDto dto)
         {
             var certificate = await _certificateRepository.GetByIdAsync(id);
 

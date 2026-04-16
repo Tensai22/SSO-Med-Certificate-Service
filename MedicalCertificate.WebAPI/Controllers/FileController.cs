@@ -69,5 +69,17 @@ public class FileController : ControllerBase
 
         return Ok($"Файл {fileName} помечен как удалён");
     }
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetFileById(int id)
+    {
+        var file = await _fileRepository.GetByIdAsync(id);
+
+        if (file == null || file.IsDeleted)
+            return NotFound("Файл не найден");
+
+        var stream = await _fileStorage.DownloadAsync(file.ObjectKey);
+
+        return File(stream, file.ContentType ?? "image/jpeg");
+    }
 
 }

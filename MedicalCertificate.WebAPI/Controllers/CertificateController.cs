@@ -11,9 +11,10 @@ namespace MedicalCertificate.WebAPI.Controllers;
 public class CertificateController(ILogger<CertificateController> logger) : BaseController
 {
     [HttpGet]
-    public async Task<IActionResult> Get()
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] int? statusId) 
     {
-        var result = await mediator.Send(new GetCertificateQuery());
+        var result = await mediator.Send(new GetCertificateQuery(statusId));
         if (result.IsFailed)
             return GenerateProblemResponse(result.Error);
 
@@ -24,6 +25,17 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     public async Task<IActionResult> GetById(int id)
     {
         var result = await mediator.Send(new GetCertificateByIdQuery(id));
+        if (result.IsFailed)
+            return GenerateProblemResponse(result.Error);
+
+        return Ok(result.Value);
+    }
+
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetByUserId(int userId)
+    {
+        var result = await mediator.Send(new GetCertificatesByUserIdQuery(userId));
+
         if (result.IsFailed)
             return GenerateProblemResponse(result.Error);
 

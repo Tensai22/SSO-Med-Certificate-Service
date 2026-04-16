@@ -58,5 +58,17 @@ public class CertificateRepository : Repository<Certificate>, ICertificateReposi
         await _context.SaveChangesAsync();
         return Result.Success();
     }
+    public async Task<List<Certificate>> GetByUserIdAsync(int userId)
+    {
+        return await _context.Certificates
+            .Where(c => c.UserId == userId)
+            .ToListAsync();
+    }
+    public async Task<IEnumerable<Certificate>> GetAllAsync()
+    {
+        return await _context.Certificates
+            .Include(c => c.User) // Без этого User будет null даже после правок в сервисе
+            .ToListAsync();
+    }
 }
 

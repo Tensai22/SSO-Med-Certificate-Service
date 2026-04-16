@@ -41,4 +41,8 @@ public class FileRepository : IFileRepository
         _context.StoredFiles.Update(file);
         await _context.SaveChangesAsync();
     }
+    public async Task<StoredFile?> GetByIdAsync(int id)
+    {
+        return await _context.StoredFiles.FindAsync(id);
+    }
 }

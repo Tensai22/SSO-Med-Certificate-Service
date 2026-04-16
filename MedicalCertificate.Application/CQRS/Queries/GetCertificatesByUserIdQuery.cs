@@ -1,13 +1,8 @@
 ﻿using MedicalCertificate.Application.DTOs;
 using KDS.Primitives.FluentResult;
 using MediatR;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MedicalCertificate.Application.CQRS.Queries;
 
-public record GetCertificateQuery(int? StatusId = null) : IRequest<Result<CertificateDto[]>>;
-  
+public record GetCertificatesByUserIdQuery(int UserId) : IRequest<Result<List<CertificateDto>>>;

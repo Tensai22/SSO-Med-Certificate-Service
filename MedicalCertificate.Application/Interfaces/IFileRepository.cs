@@ -8,4 +8,5 @@ public interface IFileRepository
     Task MarkAsDeletedAsync(string fileName);
     Task CreateAsync(StoredFile file);
     Task UpdateAsync(StoredFile file);
+    Task<StoredFile?> GetByIdAsync(int id);
 }

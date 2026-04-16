@@ -5,6 +5,7 @@ using KDS.Primitives.FluentResult;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
+using MedicalCertificate.Application.DTOs;
 
 namespace MedicalCertificate.Application.CQRS.Handlers;
 
@@ -34,18 +35,26 @@ public class RegisterCommandHandler(IUserRepository userRepository)
 }
 
 public class LoginCommandHandler(IUserRepository userRepository, IJwtProvider jwtProvider)
-    : IRequestHandler<LoginCommand, Result<string>>
+    : IRequestHandler<LoginCommand, Result<AuthResponseDto>>
 {
-    public async Task<Result<string>> Handle(LoginCommand request, CancellationToken ct)
+    public async Task<Result<AuthResponseDto>> Handle(LoginCommand request, CancellationToken ct)
     {
         var user = await userRepository.GetByEmailAsync(request.Email);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            return Result.Failure<string>(new Error("Auth.InvalidCredentials", "Invalid email or password"));
+            return Result.Failure<AuthResponseDto>(new Error("Auth.InvalidCredentials", "Invalid email or password"));
         }
 
         var token = jwtProvider.GenerateToken(user);
-        return Result.Success(token);
+
+        return Result.Success(new AuthResponseDto
+        {
+            Token = token,
+            RoleId = user.RoleId,
+            UserId = user.Id,
+            Email = user.Email,
+            RoleName = user.Role?.Name ?? "Student"
+        });
     }
 }

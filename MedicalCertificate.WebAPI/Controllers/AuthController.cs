@@ -32,6 +32,6 @@ public class AuthController(IMediator mediator) : ControllerBase
             return Unauthorized(result.Error);
         }
 
-        return Ok(new { Token = result.Value });
+        return Ok(result.Value);
     }
 }

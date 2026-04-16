@@ -11,6 +11,7 @@ namespace MedicalCertificate.Application.Interfaces;
     public interface ICertificateRepository : IRepository<Certificate>
     {
         Task<IEnumerable<Certificate>> GetAllWithStatusAsync();
+        Task<List<Certificate>> GetByUserIdAsync(int userId);
         Task<Certificate?> GetByIdWithStatusAsync(int id);
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
         Task<Result> UpdateAsync(Certificate certificate);
