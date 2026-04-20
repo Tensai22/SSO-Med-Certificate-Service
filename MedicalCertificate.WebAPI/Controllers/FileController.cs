@@ -83,7 +83,7 @@ public class FileController : ControllerBase
     }
 
     [HttpGet("download/{fileName}")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Download(string fileName)
     {
         var stream = await _fileStorage.DownloadAsync(fileName);
@@ -91,7 +91,7 @@ public class FileController : ControllerBase
     }
 
     [HttpDelete("delete/{fileName}")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Delete(string fileName)
     {
         var file = await _fileRepository.GetByNameAsync(fileName);
@@ -115,7 +115,7 @@ public class FileController : ControllerBase
             return NotFound("Файл не найден");
         }
 
-        if (!User.IsInRole(RoleNames.OfficeRegistrar))
+        if (!User.IsRegistrar())
         {
             var userId = User.GetCurrentUserId();
             if (!userId.HasValue)

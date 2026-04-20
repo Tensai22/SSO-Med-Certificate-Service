@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MedicalCertificate.WebAPI.Controllers;
 
 [ApiController]
-[Authorize(Roles = RoleNames.OfficeRegistrar)]
+[Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
 [Route("api/[controller]")]
 public class UserController(ILogger<UserController> logger) : BaseController
 {

@@ -5,14 +5,14 @@ using System.ComponentModel.DataAnnotations;
 namespace MedicalCertificate.Application.CQRS.Commands;
 
 public record RegisterCommand(
-    [property: Required]
-    [property: StringLength(120, MinimumLength = 2)]
+    [param: Required]
+    [param: StringLength(120, MinimumLength = 2)]
     string UserName,
-    [property: Required]
-    [property: EmailAddress]
+    [param: Required]
+    [param: EmailAddress]
     string Email,
-    [property: Required]
-    [property: MinLength(6)]
+    [param: Required]
+    [param: MinLength(6)]
     string Password,
-    [property: Range(1, int.MaxValue)]
+    [param: Range(1, int.MaxValue)]
     int RoleId) : IRequest<Result<int>>;

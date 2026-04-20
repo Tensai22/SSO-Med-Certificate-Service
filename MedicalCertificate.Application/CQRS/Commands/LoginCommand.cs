@@ -6,11 +6,11 @@ using System.ComponentModel.DataAnnotations;
 namespace MedicalCertificate.Application.CQRS.Commands;
 
 public record LoginCommand(
-    [property: Required]
-    [property: EmailAddress]
+    [param: Required]
+    [param: EmailAddress]
     string Email,
-    [property: Required]
-    [property: MinLength(6)]
+    [param: Required]
+    [param: MinLength(6)]
     string Password) : IRequest<Result<AuthResponseDto>>;
 
 public record LoginResponse(string Token, int RoleId);

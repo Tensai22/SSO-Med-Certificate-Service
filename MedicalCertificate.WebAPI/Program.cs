@@ -7,6 +7,7 @@ using MedicalCertificate.Domain;
 using MedicalCertificate.Domain.Options;
 using MedicalCertificate.Infrastructure.Repositories;
 using MedicalCertificate.Infrastructure.Services;
+using MedicalCertificate.WebAPI.Security;
 using MedicalCertificate.WebAPI.Middlewares;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -72,7 +73,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthorizationPolicies.RegistrarOnly, policy =>
+        policy.RequireAssertion(context => context.User.IsRegistrar()));
+});
 
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
-import { ROLES } from '../constants/roles';
-import { clearAuthStorage, getCurrentRoleId, getToken, isTokenExpired } from '../utils/auth';
+import { isRegistrarRole, isStudentRole } from '../constants/roles';
+import { getCurrentRoleId, getCurrentRoleName, getToken } from '../utils/auth';
 
 const RoleBasedRedirect = () => {
     const token = getToken();
@@ -8,22 +8,18 @@ const RoleBasedRedirect = () => {
         return <Navigate to="/login" replace />;
     }
 
-    if (isTokenExpired(token)) {
-        clearAuthStorage();
-        return <Navigate to="/login" replace />;
-    }
-
     const roleId = getCurrentRoleId();
-    if (roleId === ROLES.REGISTRAR) {
+    const roleName = getCurrentRoleName();
+
+    if (isRegistrarRole(roleId, roleName)) {
         return <Navigate to="/registrar" replace />;
     }
 
-    if (roleId === ROLES.STUDENT) {
+    if (isStudentRole(roleId, roleName)) {
         return <Navigate to="/sertificate" replace />;
     }
 
-    clearAuthStorage();
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/sertificate" replace />;
 };
 
 export default RoleBasedRedirect;

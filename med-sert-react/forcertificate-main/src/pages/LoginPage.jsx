@@ -4,7 +4,7 @@ import '../css/LoginPage.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { login as loginUser } from '../services/authService';
-import { ROLES } from '../constants/roles';
+import { isRegistrarRole, normalizeRoleId } from '../constants/roles';
 import { saveAuthData } from '../utils/auth';
 
 const LoginPage = () => {
@@ -20,7 +20,8 @@ const LoginPage = () => {
         try {
             const data = await loginUser({ email: fullEmail, password });
             const actualId = data.userId || data.UserId || data.id || data.Id;
-            const roleId = data.roleId || data.RoleId;
+            const roleId = normalizeRoleId(data.roleId ?? data.RoleId);
+            const roleName = data.roleName || data.RoleName || '';
             const token = data.token || data.Token;
 
             if (!actualId) {
@@ -28,7 +29,7 @@ const LoginPage = () => {
                 return;
             }
 
-            if (!roleId) {
+            if (!roleId && !roleName) {
                 toast.error('Ошибка данных сервера. Роль пользователя не найдена.');
                 return;
             }
@@ -42,14 +43,14 @@ const LoginPage = () => {
                 token,
                 userId: actualId,
                 user: {
-                roleId,
-                email: fullEmail,
-                roleName: data.roleName || data.RoleName || '',
-                userName: data.userName || data.UserName || fullEmail,
+                    roleId,
+                    email: fullEmail,
+                    roleName,
+                    userName: data.userName || data.UserName || fullEmail,
                 },
             });
 
-            navigate(roleId === ROLES.REGISTRAR ? '/registrar' : '/sertificate');
+            navigate(isRegistrarRole(roleId, roleName) ? '/registrar' : '/sertificate');
         } catch (error) {
             console.error('Ошибка при запросе:', error);
             const errorMessage = error.response?.data?.title || 'Неверный логин или пароль';

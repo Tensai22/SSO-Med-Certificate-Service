@@ -13,7 +13,7 @@ namespace MedicalCertificate.WebAPI.Controllers;
 public class CertificateController(ILogger<CertificateController> logger) : BaseController
 {
     [HttpGet]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Get([FromQuery] int? statusId)
     {
         var result = await mediator.Send(new GetCertificateQuery(statusId));
@@ -41,7 +41,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     public async Task<IActionResult> GetByUserId(int userId)
     {
         var currentUserId = User.GetCurrentUserId();
-        if (!User.IsInRole(RoleNames.OfficeRegistrar) && currentUserId != userId)
+        if (!User.IsRegistrar() && currentUserId != userId)
         {
             return Forbid();
         }
@@ -56,7 +56,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     }
 
     [HttpGet("{id:int}/history")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> GetHistory(int id)
     {
         var result = await mediator.Send(new GetCertificateHistoryByCertificateIdQuery(id));
@@ -77,7 +77,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
             return Unauthorized();
         }
 
-        var targetUserId = User.IsInRole(RoleNames.OfficeRegistrar)
+        var targetUserId = User.IsRegistrar()
             ? request.UserId
             : currentUserId.Value;
 
@@ -104,7 +104,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Put(int id, [FromBody] UpdateCertificateRequest request)
     {
         var command = new UpdateCertificateCommand
@@ -131,7 +131,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     }
 
     [HttpPost("{id:int}/approve")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Approve(int id)
     {
         var actorUserId = User.GetCurrentUserId();
@@ -159,7 +159,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     }
 
     [HttpPost("{id:int}/reject")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Reject(int id, [FromBody] RejectCertificateRequest request)
     {
         var actorUserId = User.GetCurrentUserId();
@@ -180,7 +180,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = RoleNames.OfficeRegistrar)]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Delete(int id)
     {
         var result = await mediator.Send(new DeleteCertificateCommand(id));

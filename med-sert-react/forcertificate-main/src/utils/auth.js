@@ -77,8 +77,11 @@ export const getCurrentUserId = () => {
 
 export const getCurrentRoleId = () => {
     const user = getStoredUser();
-    if (user?.roleId) {
-        return user.roleId;
+    if (user?.roleId !== undefined && user?.roleId !== null) {
+        const parsed = Number.parseInt(String(user.roleId), 10);
+        if (!Number.isNaN(parsed)) {
+            return parsed;
+        }
     }
 
     const payload = parseTokenPayload(getToken());
@@ -89,6 +92,25 @@ export const getCurrentRoleId = () => {
     }
 
     return null;
+};
+
+export const getCurrentRoleName = () => {
+    const user = getStoredUser();
+    if (user?.roleName && typeof user.roleName === 'string') {
+        return user.roleName;
+    }
+
+    const payload = parseTokenPayload(getToken());
+    const rawRole = payload?.role
+        ?? payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
+        ?? payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'];
+
+    if (Array.isArray(rawRole)) {
+        const firstRole = rawRole.find((value) => typeof value === 'string' && value.trim().length > 0);
+        return firstRole || '';
+    }
+
+    return typeof rawRole === 'string' ? rawRole : '';
 };
 
 export const saveAuthData = ({ token, userId, user }) => {

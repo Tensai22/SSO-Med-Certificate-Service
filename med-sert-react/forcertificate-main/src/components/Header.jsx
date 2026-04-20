@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import '../css/Header.css'
-import { ROLES } from '../constants/roles';
+import { isRegistrarRole } from '../constants/roles';
 import { clearAuthStorage, getStoredUser } from '../utils/auth';
 
 function Header() {
@@ -14,7 +14,7 @@ function Header() {
         const user = getStoredUser();
         if (user) {
             setUserName(user.userName || user.email || 'Пользователь');
-            setUserRole(user.roleId === ROLES.REGISTRAR ? 'Регистратура' : 'Бакалавриат');
+            setUserRole(isRegistrarRole(user.roleId, user.roleName) ? 'Регистратура' : 'Бакалавриат');
         }
     }, []);
 

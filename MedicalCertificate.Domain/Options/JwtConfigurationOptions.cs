@@ -2,7 +2,6 @@ namespace MedicalCertificate.Domain.Options;
 
 public class JwtConfigurationOptions
 {
-    // днаюбэ щрс ярпнйс:
     public const string SectionName = "JwtConfigurationOptions";
 
     public string Key { get; set; } = string.Empty;

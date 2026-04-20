@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
-import { clearAuthStorage, getCurrentRoleId, getToken, isTokenExpired } from '../utils/auth';
+import { ROLES, isRegistrarRole, isStudentRole } from '../constants/roles';
+import { getCurrentRoleId, getCurrentRoleName, getToken } from '../utils/auth';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const token = getToken();
@@ -7,19 +8,20 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
         return <Navigate to="/login" replace />;
     }
 
-    if (isTokenExpired(token)) {
-        clearAuthStorage();
-        return <Navigate to="/login" replace />;
-    }
-
     const roleId = getCurrentRoleId();
-    if (!roleId) {
-        clearAuthStorage();
+    const roleName = getCurrentRoleName();
+
+    if (!roleId && !roleName) {
         return <Navigate to="/login" replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(roleId)) {
-        return <Navigate to="/" replace />;
+    if (allowedRoles?.length) {
+        const canAccessRegistrar = allowedRoles.includes(ROLES.REGISTRAR) && isRegistrarRole(roleId, roleName);
+        const canAccessStudent = allowedRoles.includes(ROLES.STUDENT) && isStudentRole(roleId, roleName);
+
+        if (!canAccessRegistrar && !canAccessStudent) {
+            return <Navigate to="/" replace />;
+        }
     }
 
     return children;
