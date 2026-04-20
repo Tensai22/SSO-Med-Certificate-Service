@@ -7,6 +7,7 @@ import {
     fetchUserCertificates,
 } from '../../../services/certificateService';
 import { uploadCertificateFile } from '../../../services/fileService';
+import { getCurrentUserId } from '../../../utils/auth';
 
 const initialFormState = {
     comment: '',
@@ -22,7 +23,7 @@ function StudentCertificateContent() {
     const [formData, setFormData] = useState(initialFormState);
 
     const fetchCertificates = useCallback(async () => {
-        const userId = localStorage.getItem('userId');
+        const userId = getCurrentUserId();
 
         if (!userId) {
             console.error('Пользователь не авторизован');
@@ -69,7 +70,7 @@ function StudentCertificateContent() {
     };
 
     const handleSubmit = async () => {
-        const currentUserId = localStorage.getItem('userId');
+        const currentUserId = getCurrentUserId();
 
         if (!file || !formData.dateFrom || !formData.dateTo) {
             toast.error('Заполните все поля и выберите файл');
@@ -92,7 +93,7 @@ function StudentCertificateContent() {
             const fileId = uploadResult.id;
 
             const certificateRequest = {
-                UserId: parseInt(currentUserId, 10),
+                UserId: currentUserId,
                 StartDate: formData.dateFrom,
                 EndDate: formData.dateTo,
                 Clinic: formData.institution,
