@@ -14,11 +14,32 @@ namespace MedicalCertificate.WebAPI.Controllers;
 [Route("api/[controller]")]
 public class FileController : ControllerBase
 {
-    private static readonly HashSet<string> AllowedPdfContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly IReadOnlyDictionary<string, (string CanonicalContentType, HashSet<string> AllowedContentTypes)> AllowedFileTypes
+        = new Dictionary<string, (string CanonicalContentType, HashSet<string> AllowedContentTypes)>(StringComparer.OrdinalIgnoreCase)
     {
-        "application/pdf",
-        "application/x-pdf",
-        "application/octet-stream"
+        [".pdf"] = ("application/pdf", new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "application/pdf",
+            "application/x-pdf",
+            "application/octet-stream"
+        }),
+        [".png"] = ("image/png", new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/png",
+            "application/octet-stream"
+        }),
+        [".jpg"] = ("image/jpeg", new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/pjpeg",
+            "application/octet-stream"
+        }),
+        [".jpeg"] = ("image/jpeg", new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/pjpeg",
+            "application/octet-stream"
+        })
     };
 
     private readonly IFileStorageService _fileStorage;
@@ -49,27 +70,29 @@ public class FileController : ControllerBase
 
         var safeFileName = Path.GetFileName(request.File.FileName);
         var fileExtension = Path.GetExtension(safeFileName);
-        var isPdfExtension = string.Equals(fileExtension, ".pdf", StringComparison.OrdinalIgnoreCase);
-        var isAllowedContentType = AllowedPdfContentTypes.Contains(request.File.ContentType);
+        var incomingContentType = request.File.ContentType ?? string.Empty;
+        var hasSupportedExtension = AllowedFileTypes.TryGetValue(fileExtension, out var fileTypeSettings);
+        var isAllowedContentType = hasSupportedExtension && fileTypeSettings.AllowedContentTypes.Contains(incomingContentType);
 
-        if (!isPdfExtension || !isAllowedContentType)
+        if (!hasSupportedExtension || !isAllowedContentType)
         {
-            return BadRequest("Допускаются только PDF файлы");
+            return BadRequest("Допускаются только файлы PDF, PNG, JPG или JPEG");
         }
 
-        var objectKey = $"{Guid.NewGuid():N}.pdf";
+        var normalizedExtension = fileExtension.ToLowerInvariant();
+        var objectKey = $"{Guid.NewGuid():N}{normalizedExtension}";
 
         using var memoryStream = new MemoryStream();
         await request.File.CopyToAsync(memoryStream);
         memoryStream.Position = 0;
 
-        await _fileStorage.UploadAsync(objectKey, memoryStream, "application/pdf");
+        await _fileStorage.UploadAsync(objectKey, memoryStream, fileTypeSettings.CanonicalContentType);
 
         var storedFile = new StoredFile
         {
             Name = safeFileName,
-            ContentType = "application/pdf",
-            FileType = ".pdf",
+            ContentType = fileTypeSettings.CanonicalContentType,
+            FileType = normalizedExtension,
             Size = request.File.Length,
             Bucket = string.IsNullOrWhiteSpace(_minioOptions.BucketName) ? "medical-files" : _minioOptions.BucketName,
             ObjectKey = objectKey,

@@ -16,6 +16,24 @@ const initialFormState = {
     institution: '',
 };
 
+const allowedCertificateExtensions = ['.pdf', '.png', '.jpg', '.jpeg'];
+const allowedCertificateMimeTypes = ['application/pdf', 'image/png', 'image/jpeg'];
+
+const isAllowedCertificateFile = (selectedFile) => {
+    if (!selectedFile) {
+        return false;
+    }
+
+    const fileName = selectedFile.name?.toLowerCase() ?? '';
+    const fileType = selectedFile.type?.toLowerCase() ?? '';
+    const hasAllowedExtension = allowedCertificateExtensions.some((extension) => fileName.endsWith(extension));
+    const hasAllowedMimeType = !fileType
+        || fileType === 'application/octet-stream'
+        || allowedCertificateMimeTypes.includes(fileType);
+
+    return hasAllowedExtension && hasAllowedMimeType;
+};
+
 function StudentCertificateContent() {
     const [activeTab, setActiveTab] = useState('справка');
     const [certificates, setCertificates] = useState([]);
@@ -50,11 +68,10 @@ function StudentCertificateContent() {
             return;
         }
 
-        const isPdf = selectedFile.type === 'application/pdf'
-            || selectedFile.name.toLowerCase().endsWith('.pdf');
+        const isSupportedFile = isAllowedCertificateFile(selectedFile);
 
-        if (!isPdf) {
-            toast.error('Можно загрузить только PDF файл');
+        if (!isSupportedFile) {
+            toast.error('Можно загрузить только файлы PDF, PNG, JPG или JPEG');
             event.target.value = '';
             return;
         }
@@ -82,9 +99,8 @@ function StudentCertificateContent() {
             return;
         }
 
-        const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-        if (!isPdf) {
-            toast.error('Можно загрузить только PDF файл');
+        if (!isAllowedCertificateFile(file)) {
+            toast.error('Можно загрузить только файлы PDF, PNG, JPG или JPEG');
             return;
         }
 
@@ -157,10 +173,10 @@ function StudentCertificateContent() {
                         </div>
                         <div className="actions">
                             <label className="file-upload-link">
-                                📎 {file ? file.name : 'Загрузить справку (PDF)'}
+                                📎 {file ? file.name : 'Загрузить справку (PDF, PNG, JPG, JPEG)'}
                                 <input
                                     type="file"
-                                    accept=".pdf,application/pdf"
+                                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
                                     hidden
                                     onChange={handleFileChange}
                                 />
