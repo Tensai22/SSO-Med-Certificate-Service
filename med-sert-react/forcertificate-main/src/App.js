@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Header from './components/Header';
 import MainPage from './pages/MainPage';
 import RegistrarPage from './pages/RegistrarPage';
+import StudentDashboardPage from './pages/StudentDashboardPage';
+import RegistrarDashboardPage from './pages/RegistrarDashboardPage';
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from './routes/ProtectedRoute';
 import { Navigate } from 'react-router-dom';
@@ -24,11 +26,23 @@ function AppContent() {
 
                 <Route path="/sertificate" element={
                     <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
+                        <StudentDashboardPage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/my-sertificates" element={
+                    <ProtectedRoute allowedRoles={[ROLES.STUDENT]}>
                         <MainPage />
                     </ProtectedRoute>
                 } />
 
                 <Route path="/registrar" element={
+                    <ProtectedRoute allowedRoles={[ROLES.REGISTRAR]}>
+                        <RegistrarDashboardPage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/incoming-sertificates" element={
                     <ProtectedRoute allowedRoles={[ROLES.REGISTRAR]}>
                         <RegistrarPage />
                     </ProtectedRoute>

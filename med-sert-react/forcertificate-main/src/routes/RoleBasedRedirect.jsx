@@ -1,6 +1,8 @@
 import { Navigate } from 'react-router-dom';
 import { isRegistrarRole, isStudentRole } from '../constants/roles';
 import { getCurrentRoleId, getCurrentRoleName, getToken } from '../utils/auth';
+import StudentDashboardPage from '../pages/StudentDashboardPage';
+import RegistrarDashboardPage from '../pages/RegistrarDashboardPage';
 
 const RoleBasedRedirect = () => {
     const token = getToken();
@@ -12,14 +14,14 @@ const RoleBasedRedirect = () => {
     const roleName = getCurrentRoleName();
 
     if (isRegistrarRole(roleId, roleName)) {
-        return <Navigate to="/registrar" replace />;
+        return <RegistrarDashboardPage />;
     }
 
     if (isStudentRole(roleId, roleName)) {
-        return <Navigate to="/sertificate" replace />;
+        return <StudentDashboardPage />;
     }
 
-    return <Navigate to="/sertificate" replace />;
+    return <StudentDashboardPage />;
 };
 
 export default RoleBasedRedirect;

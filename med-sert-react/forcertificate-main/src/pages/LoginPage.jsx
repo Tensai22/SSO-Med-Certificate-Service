@@ -4,7 +4,7 @@ import '../css/LoginPage.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { login as loginUser } from '../services/authService';
-import { isRegistrarRole, normalizeRoleId } from '../constants/roles';
+import { normalizeRoleId } from '../constants/roles';
 import { saveAuthData } from '../utils/auth';
 
 const LoginPage = () => {
@@ -50,7 +50,7 @@ const LoginPage = () => {
                 },
             });
 
-            navigate(isRegistrarRole(roleId, roleName) ? '/registrar' : '/sertificate');
+            navigate('/');
         } catch (error) {
             console.error('Ошибка при запросе:', error);
             const errorMessage = error.response?.data?.title || 'Неверный логин или пароль';
