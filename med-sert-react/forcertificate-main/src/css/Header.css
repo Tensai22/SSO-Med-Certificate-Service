@@ -57,19 +57,32 @@
 .operator_block {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 22px;
 }
 
 .visually_impaired .bvi-open {
+    appearance: none;
+    background: transparent;
     color: white;
     border: 1px solid white;
-    padding: 8px 10px;
+    padding: 8px 12px;
     border-radius: 5px;
     text-decoration: none;
     display: flex;
     align-items: center;
+    gap: 8px;
+    justify-content: center;
     font-weight: bold;
     font-size: 14px;
+}
+
+.visually_impaired .bvi-open svg {
+    font-size: 16px;
+    line-height: 1;
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    flex-shrink: 0;
 }
 
 .oper_name_block {
@@ -91,7 +104,8 @@
 .oper_set_block {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 18px;
+    transform: translateX(0);
 }
 
 .img.default-img img {
@@ -100,10 +114,24 @@
 }
 
 .exit_block {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: white;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
     cursor: pointer;
+    text-align: center;
+    padding: 0;
+}
+
+.exit_block svg {
+    width: 36px;
+    height: 36px;
+    fill: currentColor;
+    flex-shrink: 0;
 }
 
 .exit_block p {
@@ -125,11 +153,11 @@
     font-weight: bold;
     cursor: pointer;
     
-    padding: 2px 8px;       
-    font-size: 10px;        
+    padding: 2px 10px;       
+    font-size: 12px;        
     line-height: 1.2;     
     
-    width: 40px;           
+    width: 48px;           
     text-align: center;
     transition: 0.2s;
 }

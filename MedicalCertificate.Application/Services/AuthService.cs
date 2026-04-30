@@ -46,6 +46,7 @@ namespace MedicalCertificate.Application.Services
             {
                 Token = token,
                 Email = user.Email,
+                UserName = user.UserName ?? string.Empty,
                 RoleId = user.RoleId,
                 RoleName = user.Role?.Name ?? string.Empty,
                 UserId = user.Id
@@ -79,6 +80,7 @@ namespace MedicalCertificate.Application.Services
             {
                 Token = token,
                 Email = user.Email,
+                UserName = user.UserName ?? string.Empty,
                 RoleId = user.RoleId,
                 RoleName = user.Role?.Name ?? string.Empty,
                 UserId = user.Id

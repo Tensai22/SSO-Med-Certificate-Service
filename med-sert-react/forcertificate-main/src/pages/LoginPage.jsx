@@ -46,7 +46,7 @@ const LoginPage = () => {
                     roleId,
                     email: fullEmail,
                     roleName,
-                    userName: data.userName || data.UserName || fullEmail,
+                    userName: data.userName || data.UserName || '',
                 },
             });
 

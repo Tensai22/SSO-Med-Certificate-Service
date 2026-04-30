@@ -54,6 +54,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtProvider jw
             RoleId = user.RoleId,
             UserId = user.Id,
             Email = user.Email,
+            UserName = user.UserName ?? string.Empty,
             RoleName = user.Role?.Name ?? "Student"
         });
     }

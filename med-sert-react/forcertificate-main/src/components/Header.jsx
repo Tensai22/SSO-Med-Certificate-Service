@@ -4,6 +4,19 @@ import { useState, useEffect } from 'react';
 import '../css/Header.css'
 import { isRegistrarRole } from '../constants/roles';
 import { clearAuthStorage, getStoredUser } from '../utils/auth';
+import apiClient from '../services/apiClient';
+
+const EyeIcon = () => (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 5C6.5 5 2.1 8.4 0.6 12c1.5 3.6 5.9 7 11.4 7s9.9-3.4 11.4-7C21.9 8.4 17.5 5 12 5zm0 11.2c-2.9 0-5.2-2.3-5.2-5.2S9.1 5.8 12 5.8s5.2 2.3 5.2 5.2-2.3 5.2-5.2 5.2zm0-8.3a3.1 3.1 0 1 0 0 6.2 3.1 3.1 0 0 0 0-6.2z" />
+    </svg>
+);
+
+const LogoutIcon = () => (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M10.2 17.4H5.9V6.6h4.3V5H4.3v14h5.9v-1.6zm8.8-4.6-4.3-4.3-1.1 1.1 2.4 2.4H9v1.6h7l-2.4 2.4 1.1 1.1 4.3-4.3z" />
+    </svg>
+);
 
 function Header() {
     const navigate = useNavigate();
@@ -11,10 +24,45 @@ function Header() {
     const [userRole, setUserRole] = useState('');
 
     useEffect(() => {
+        let isMounted = true;
         const user = getStoredUser();
-        if (user) {
-            setUserName(user.userName || user.email || 'Пользователь');
-            setUserRole(isRegistrarRole(user.roleId, user.roleName) ? 'Регистратура' : 'Бакалавриат');
+
+        if (!user) {
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        setUserName(user.userName || user.UserName || 'Пользователь');
+        setUserRole(isRegistrarRole(user.roleId, user.roleName) ? 'Регистратура' : 'Бакалавриат');
+
+        const loadCurrentUser = async () => {
+            if (user.userName || user.UserName) {
+                return;
+            }
+
+            const response = await apiClient.get('/Auth/me');
+            const profile = response?.data?.user ?? response?.data;
+            const resolvedName = profile?.userName || profile?.UserName || '';
+
+            if (!isMounted || !resolvedName) {
+                return;
+            }
+
+            setUserName(resolvedName);
+
+            const currentUser = getStoredUser() || {};
+            localStorage.setItem('user', JSON.stringify({
+                ...currentUser,
+                ...profile,
+                userName: resolvedName,
+            }));
+        };
+
+        loadCurrentUser();
+
+        return () => {
+            isMounted = false;
         }
     }, []);
 
@@ -40,8 +88,9 @@ function Header() {
             </div>
             <div className="operator_block">
                 <div className="visually_impaired">
-                    <button type="button" className="bvi-open" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                        <i className="icon-eye"></i>&nbsp;&nbsp; Версия для слабовидящих
+                    <button type="button" className="bvi-open">
+                        <EyeIcon />
+                        <span>Версия для слабовидящих</span>
                     </button>
                 </div>
                 <div className="oper_name_block">
@@ -57,10 +106,10 @@ function Header() {
                              className="bvi-img"/>
                     </div>
 
-                    <div className="exit_block" onClick={handleLogout} style={{ cursor: 'pointer' }}>
-                        <i className="icon-enter"></i>
+                    <button type="button" className="exit_block" onClick={handleLogout}>
+                        <LogoutIcon />
                         <p>Выход</p>
-                    </div>
+                    </button>
                     
                     <div className="lang_block">
                         <button onClick={() => console.log('Switch to Kazakh')} className="button oper_button">
