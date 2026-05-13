@@ -1,4 +1,5 @@
 using MedicalCertificate.Application.DTOs;
+using MedicalCertificate.Domain.Constants;
 using MedicalCertificate.Domain.Entities;
 
 namespace MedicalCertificate.Application.Mapping;
@@ -19,6 +20,36 @@ public static class EduUserMapper
 
         var displayName = string.Join(" ", parts).Trim();
         return string.IsNullOrWhiteSpace(displayName) ? user.Email ?? string.Empty : displayName;
+    }
+
+    public static int ResolveRoleId(Edu_Users? user, int fallbackRoleId)
+    {
+        if (user?.Student is not null)
+        {
+            return RoleIds.Student;
+        }
+
+        if (IsRegistrarEmployee(user?.Employee))
+        {
+            return RoleIds.OfficeRegistrar;
+        }
+
+        return fallbackRoleId;
+    }
+
+    public static string ResolveRoleName(Edu_Users? user, string fallbackRoleName)
+    {
+        if (user?.Student is not null)
+        {
+            return "Student";
+        }
+
+        if (IsRegistrarEmployee(user?.Employee))
+        {
+            return "Office Registrar";
+        }
+
+        return fallbackRoleName;
     }
 
     public static UserDto ToUserDto(Edu_Users user)
@@ -114,5 +145,20 @@ public static class EduUserMapper
 
         return expectedTypes.Any(expected =>
             string.Equals(actualType.Trim(), expected, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsRegistrarEmployee(Edu_Employees? employee)
+    {
+        if (employee is null)
+        {
+            return false;
+        }
+
+        if (employee.RoleGroupId == RoleIds.OfficeRegistrar)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

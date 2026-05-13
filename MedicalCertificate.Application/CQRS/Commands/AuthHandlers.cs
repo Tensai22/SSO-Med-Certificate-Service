@@ -15,7 +15,8 @@ namespace MedicalCertificate.Application.CQRS.Handlers;
 public class RegisterCommandHandler(
     IUserRepository userRepository,
     IEduUserRepository eduUserRepository,
-    IRepository<Edu_Students> eduStudentRepository)
+    IRepository<Edu_Students> eduStudentRepository,
+    IRepository<Edu_Employees> eduEmployeeRepository)
     : IRequestHandler<RegisterCommand, Result<int>>
 {
     public async Task<Result<int>> Handle(RegisterCommand request, CancellationToken ct)
@@ -24,6 +25,11 @@ public class RegisterCommandHandler(
         if (existingUser != null)
         {
             return Result.Failure<int>(new Error("Auth.DuplicateEmail", "User already exists"));
+        }
+
+        if (request.RoleId is not RoleIds.Student and not RoleIds.OfficeRegistrar)
+        {
+            return Result.Failure<int>(new Error(ErrorCode.BadRequest, "Unsupported role"));
         }
 
         var eduUser = await eduUserRepository.GetByEmailWithRelationsAsync(request.Email);
@@ -43,7 +49,7 @@ public class RegisterCommandHandler(
             await eduUserRepository.AddAsync(eduUser);
         }
 
-        await EnsureStudentProfileAsync(eduUser, request.Email, request.RoleId);
+        await EnsureEduProfileAsync(eduUser, request.Email, request.RoleId);
 
         var user = new User
         {
@@ -58,22 +64,41 @@ public class RegisterCommandHandler(
         return Result.Success(user.Id);
     }
 
-    private async Task EnsureStudentProfileAsync(Edu_Users eduUser, string updatedBy, int roleId)
+    private async Task EnsureEduProfileAsync(Edu_Users eduUser, string updatedBy, int roleId)
     {
-        if (roleId != RoleIds.Student || eduUser.Student is not null)
+        if (roleId == RoleIds.Student)
         {
+            if (eduUser.Student is not null)
+            {
+                return;
+            }
+
+            await eduStudentRepository.AddAsync(new Edu_Students
+            {
+                StudentID = eduUser.ID,
+                NeedsDorm = false,
+                AltynBelgi = false,
+                Year = 1,
+                LastUpdatedBy = updatedBy,
+                LastUpdatedOn = DateTime.UtcNow
+            });
             return;
         }
 
-        await eduStudentRepository.AddAsync(new Edu_Students
+        if (roleId == RoleIds.OfficeRegistrar)
         {
-            StudentID = eduUser.ID,
-            NeedsDorm = false,
-            AltynBelgi = false,
-            Year = 1,
-            LastUpdatedBy = updatedBy,
-            LastUpdatedOn = DateTime.UtcNow
-        });
+            if (eduUser.Employee is not null)
+            {
+                return;
+            }
+
+            await eduEmployeeRepository.AddAsync(new Edu_Employees
+            {
+                ID = eduUser.ID,
+                IsAdvisor = false,
+                RoleGroupId = roleId
+            });
+        }
     }
 }
 
@@ -90,16 +115,18 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtProvider jw
         }
 
         var token = jwtProvider.GenerateToken(user);
+        var roleId = EduUserMapper.ResolveRoleId(user.EduUser, user.RoleId);
 
         return Result.Success(new AuthResponseDto
         {
             Token = token,
-            RoleId = user.RoleId,
+            RoleId = roleId,
             UserId = user.Id,
             Email = user.Email,
             EduUserId = user.EduUserId,
             UserName = EduUserMapper.GetDisplayName(user.EduUser),
-            RoleName = user.Role?.Name ?? "Student"
+            FullName = EduUserMapper.GetDisplayName(user.EduUser),
+            RoleName = EduUserMapper.ResolveRoleName(user.EduUser, user.Role?.Name ?? "Student")
         });
     }
 }

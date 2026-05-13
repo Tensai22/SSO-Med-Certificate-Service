@@ -11,6 +11,7 @@ public class AuthResponseDto
     public string Email { get; set; } = null!;
     // TODO(copilot): keep the EDU-backed display name only until the UI stops depending on it.
     public string UserName { get; set; } = null!;
+    public string FullName { get; set; } = null!;
     public int? EduUserId { get; set; }
     public int RoleId { get; set; }
     public string RoleName { get; set; } = null!;

@@ -20,17 +20,20 @@ namespace MedicalCertificate.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IEduUserRepository _eduUserRepository;
         private readonly IRepository<Edu_Students> _eduStudentRepository;
+        private readonly IRepository<Edu_Employees> _eduEmployeeRepository;
         private readonly JwtConfigurationOptions _jwtConfig;
 
         public AuthService(
             IUserRepository userRepository,
             IEduUserRepository eduUserRepository,
             IRepository<Edu_Students> eduStudentRepository,
+            IRepository<Edu_Employees> eduEmployeeRepository,
             IOptions<JwtConfigurationOptions> jwtOptions)
         {
             _userRepository = userRepository;
             _eduUserRepository = eduUserRepository;
             _eduStudentRepository = eduStudentRepository;
+            _eduEmployeeRepository = eduEmployeeRepository;
             _jwtConfig = jwtOptions.Value;
         }
 
@@ -51,15 +54,17 @@ namespace MedicalCertificate.Application.Services
             }
 
             var token = GenerateJwtToken(user);
+            var roleId = EduUserMapper.ResolveRoleId(user.EduUser, user.RoleId);
 
             return new AuthResponseDto
             {
                 Token = token,
                 Email = user.Email,
                 UserName = EduUserMapper.GetDisplayName(user.EduUser),
+                FullName = EduUserMapper.GetDisplayName(user.EduUser),
                 EduUserId = user.EduUserId,
-                RoleId = user.RoleId,
-                RoleName = user.Role?.Name ?? string.Empty,
+                RoleId = roleId,
+                RoleName = EduUserMapper.ResolveRoleName(user.EduUser, user.Role?.Name ?? string.Empty),
                 UserId = user.Id
             };
         }
@@ -71,6 +76,11 @@ namespace MedicalCertificate.Application.Services
             if (existingUser is not null)
             {
                 return Result.Failure<AuthResponseDto>(new Error(ErrorCode.Conflict, "Пользователь с таким именем уже существует"));
+            }
+
+            if (registerDto.RoleId is not RoleIds.Student and not RoleIds.OfficeRegistrar)
+            {
+                return Result.Failure<AuthResponseDto>(new Error(ErrorCode.BadRequest, "Unsupported role"));
             }
 
             string passwordHash = BC.HashPassword(registerDto.Password);
@@ -89,7 +99,7 @@ namespace MedicalCertificate.Application.Services
                 await _eduUserRepository.AddAsync(eduUser);
             }
 
-            await EnsureStudentProfileAsync(eduUser, registerDto.Email, registerDto.RoleId);
+            await EnsureEduProfileAsync(eduUser, registerDto.Email, registerDto.RoleId);
 
             var user = new User
             {
@@ -105,35 +115,56 @@ namespace MedicalCertificate.Application.Services
 
             var createdUser = await _userRepository.GetByEmailWithRoleAsync(registerDto.Email) ?? user;
             var token = GenerateJwtToken(createdUser);
+            var roleId = EduUserMapper.ResolveRoleId(createdUser.EduUser, createdUser.RoleId);
 
             return new AuthResponseDto
             {
                 Token = token,
                 Email = createdUser.Email,
                 UserName = EduUserMapper.GetDisplayName(createdUser.EduUser),
+                FullName = EduUserMapper.GetDisplayName(createdUser.EduUser),
                 EduUserId = createdUser.EduUserId,
-                RoleId = createdUser.RoleId,
-                RoleName = createdUser.Role?.Name ?? string.Empty,
+                RoleId = roleId,
+                RoleName = EduUserMapper.ResolveRoleName(createdUser.EduUser, createdUser.Role?.Name ?? string.Empty),
                 UserId = createdUser.Id
             };
         }
 
-        private async Task EnsureStudentProfileAsync(Edu_Users eduUser, string updatedBy, int roleId)
+        private async Task EnsureEduProfileAsync(Edu_Users eduUser, string updatedBy, int roleId)
         {
-            if (roleId != RoleIds.Student || eduUser.Student is not null)
+            if (roleId == RoleIds.Student)
             {
+                if (eduUser.Student is not null)
+                {
+                    return;
+                }
+
+                await _eduStudentRepository.AddAsync(new Edu_Students
+                {
+                    StudentID = eduUser.ID,
+                    NeedsDorm = false,
+                    AltynBelgi = false,
+                    Year = 1,
+                    LastUpdatedBy = updatedBy,
+                    LastUpdatedOn = DateTime.UtcNow
+                });
                 return;
             }
 
-            await _eduStudentRepository.AddAsync(new Edu_Students
+            if (roleId == RoleIds.OfficeRegistrar)
             {
-                StudentID = eduUser.ID,
-                NeedsDorm = false,
-                AltynBelgi = false,
-                Year = 1,
-                LastUpdatedBy = updatedBy,
-                LastUpdatedOn = DateTime.UtcNow
-            });
+                if (eduUser.Employee is not null)
+                {
+                    return;
+                }
+
+                await _eduEmployeeRepository.AddAsync(new Edu_Employees
+                {
+                    ID = eduUser.ID,
+                    IsAdvisor = false,
+                    RoleGroupId = roleId
+                });
+            }
         }
 
         private string GenerateJwtToken(User user)
@@ -144,8 +175,10 @@ namespace MedicalCertificate.Application.Services
             {
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(ClaimTypes.Email, user.Email),
-                new(ClaimTypes.Role, user.Role?.Name ?? string.Empty)
+                new(ClaimTypes.Role, EduUserMapper.ResolveRoleName(user.EduUser, user.Role?.Name ?? string.Empty))
             };
+
+            claims.Add(new Claim("roleId", EduUserMapper.ResolveRoleId(user.EduUser, user.RoleId).ToString()));
 
             if (user.EduUserId.HasValue)
             {

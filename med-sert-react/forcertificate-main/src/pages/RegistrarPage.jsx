@@ -32,22 +32,33 @@ const getTextValue = (source, ...keys) => {
     return '';
 };
 
-const uniqueSortedValues = (items, selector) => {
-    return Array.from(
-        new Set(
-            items
-                .map(selector)
-                .map((value) => (typeof value === 'string' ? value.trim() : ''))
-                .filter(Boolean),
-        ),
-    ).sort((a, b) => a.localeCompare(b, 'ru'));
+const getOrgUnitTitle = (unit) => getTextValue(unit, 'title', 'Title');
+const getOrgUnitTypeTitle = (unit) => getTextValue(unit, 'typeTitle', 'TypeTitle');
+const getOrgUnitParentId = (unit) => unit?.parentId ?? unit?.ParentID ?? null;
+const normalizeText = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const stripLeadingLabel = (value, labels) => {
+    const text = typeof value === 'string' ? value.trim() : '';
+    if (!text) {
+        return '';
+    }
+
+    const parts = text.split(/\s+/);
+    if (parts.length <= 1) {
+        return text;
+    }
+
+    const [firstWord, ...rest] = parts;
+    const matchesLabel = labels.some((label) => firstWord.toLowerCase() === label.toLowerCase());
+
+    return matchesLabel ? rest.join(' ') : text;
 };
 
 const RegistrarPage = () => {
     const [activeTab, setActiveTab] = useState('vkhodyashie');
-    const [allCertificates, setAllCertificates] = useState([]);
     const [certificates, setCertificates] = useState([]);
     const [filterOptions, setFilterOptions] = useState({
+        orgUnits: [],
         departments: [],
         institutes: [],
     });
@@ -65,7 +76,6 @@ const RegistrarPage = () => {
     const fetchCertificates = useCallback(async () => {
         try {
             const allData = await fetchAllCertificates();
-            setAllCertificates(allData);
 
             if (activeTab === 'vkhodyashie') {
                 setCertificates(allData.filter((cert) => cert.statusId === 1));
@@ -82,6 +92,7 @@ const RegistrarPage = () => {
         try {
             const data = await fetchCertificateFilters();
             setFilterOptions({
+                orgUnits: Array.isArray(data?.orgUnits) ? data.orgUnits : [],
                 departments: Array.isArray(data?.departments) ? data.departments : [],
                 institutes: Array.isArray(data?.institutes) ? data.institutes : [],
             });
@@ -234,28 +245,51 @@ const RegistrarPage = () => {
         return filteredCertificates.slice(startIndex, startIndex + PAGE_SIZE);
     }, [filteredCertificates, currentPage]);
 
-    const eduFilterOptions = useMemo(() => ({
-        department: filterOptions.departments.length > 0
-            ? filterOptions.departments
-            : uniqueSortedValues(allCertificates, (cert) => getTextValue(cert.user, 'department', 'Department')),
-        institute: filterOptions.institutes.length > 0
-            ? filterOptions.institutes
-            : uniqueSortedValues(allCertificates, (cert) => getTextValue(cert.user, 'institute', 'Institute')),
-    }), [allCertificates, filterOptions.departments, filterOptions.institutes]);
+    const eduOrgUnits = useMemo(() => {
+        return filterOptions.orgUnits;
+    }, [filterOptions.orgUnits]);
 
-    const departmentSuggestions = useMemo(() => {
-        const query = searchFilters.department.trim().toLowerCase();
-        return query
-            ? eduFilterOptions.department.filter((value) => value.toLowerCase().includes(query))
-            : eduFilterOptions.department;
-    }, [eduFilterOptions.department, searchFilters.department]);
+    const instituteUnits = useMemo(() => eduOrgUnits.filter((unit) => {
+        const typeTitle = normalizeText(getOrgUnitTypeTitle(unit));
+        return typeTitle.includes('институт') || typeTitle.includes('instit');
+    }), [eduOrgUnits]);
+
+    const departmentUnits = useMemo(() => eduOrgUnits.filter((unit) => {
+        const typeTitle = normalizeText(getOrgUnitTypeTitle(unit));
+        return typeTitle.includes('кафед') || typeTitle.includes('depart') || typeTitle.includes('chair');
+    }), [eduOrgUnits]);
+
+    const selectedInstituteUnit = useMemo(() => {
+        const query = normalizeText(searchFilters.institute);
+        if (!query) {
+            return null;
+        }
+
+        return instituteUnits.find((unit) => normalizeText(getOrgUnitTitle(unit)) === query) ?? null;
+    }, [instituteUnits, searchFilters.institute]);
 
     const instituteSuggestions = useMemo(() => {
-        const query = searchFilters.institute.trim().toLowerCase();
-        return query
-            ? eduFilterOptions.institute.filter((value) => value.toLowerCase().includes(query))
-            : eduFilterOptions.institute;
-    }, [eduFilterOptions.institute, searchFilters.institute]);
+        const query = normalizeText(searchFilters.institute);
+        const source = query
+            ? instituteUnits.filter((unit) => normalizeText(getOrgUnitTitle(unit)).includes(query))
+            : instituteUnits;
+
+        return source
+            .map(getOrgUnitTitle)
+            .filter(Boolean);
+    }, [instituteUnits, searchFilters.institute]);
+
+    const departmentSuggestions = useMemo(() => {
+        const query = normalizeText(searchFilters.department);
+        const source = selectedInstituteUnit
+            ? departmentUnits.filter((unit) => String(getOrgUnitParentId(unit)) === String(selectedInstituteUnit.id ?? selectedInstituteUnit.ID))
+            : departmentUnits;
+
+        return source
+            .filter((unit) => !query || normalizeText(getOrgUnitTitle(unit)).includes(query))
+            .map(getOrgUnitTitle)
+            .filter(Boolean);
+    }, [departmentUnits, searchFilters.department, selectedInstituteUnit]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -269,6 +303,10 @@ const RegistrarPage = () => {
     };
 
     const selectSuggestion = (field, value) => {
+        if (field === 'institute') {
+            updateSearchFilter('department', '');
+        }
+
         updateSearchFilter(field, value);
         setActiveDropdown(null);
     };
@@ -333,38 +371,6 @@ const RegistrarPage = () => {
                             <input
                                 className="registrar-filter-input"
                                 type="text"
-                                placeholder="Кафедра"
-                                value={searchFilters.department}
-                                onChange={(e) => {
-                                    updateSearchFilter('department', e.target.value);
-                                    setActiveDropdown('department');
-                                }}
-                                onFocus={() => setActiveDropdown('department')}
-                                onBlur={() => setActiveDropdown((current) => (current === 'department' ? null : current))}
-                                autoComplete="off"
-                            />
-                            {activeDropdown === 'department' && departmentSuggestions.length > 0 && (
-                                <div className="registrar-dropdown">
-                                    {departmentSuggestions.map((value) => (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            className="registrar-dropdown-option"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                selectSuggestion('department', value);
-                                            }}
-                                        >
-                                            {value}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="registrar-filter-group">
-                            <input
-                                className="registrar-filter-input"
-                                type="text"
                                 placeholder="Институт"
                                 value={searchFilters.institute}
                                 onChange={(e) => {
@@ -385,6 +391,38 @@ const RegistrarPage = () => {
                                             onMouseDown={(e) => {
                                                 e.preventDefault();
                                                 selectSuggestion('institute', value);
+                                            }}
+                                        >
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="registrar-filter-group">
+                            <input
+                                className="registrar-filter-input"
+                                type="text"
+                                placeholder="Кафедра"
+                                value={searchFilters.department}
+                                onChange={(e) => {
+                                    updateSearchFilter('department', e.target.value);
+                                    setActiveDropdown('department');
+                                }}
+                                onFocus={() => setActiveDropdown('department')}
+                                onBlur={() => setActiveDropdown((current) => (current === 'department' ? null : current))}
+                                autoComplete="off"
+                            />
+                            {activeDropdown === 'department' && departmentSuggestions.length > 0 && (
+                                <div className="registrar-dropdown">
+                                    {departmentSuggestions.map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            className="registrar-dropdown-option"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                selectSuggestion('department', value);
                                             }}
                                         >
                                             {value}
@@ -551,10 +589,10 @@ const RegistrarPage = () => {
                                         <span>{getTextValue(selectedCert.user, 'iin', 'IIN') || 'Данные отсутствуют'}</span>
 
                                         <span>Кафедра</span>
-                                        <span>{getTextValue(selectedCert.user, 'department', 'Department') || 'Данные отсутствуют'}</span>
+                                        <span>{stripLeadingLabel(getTextValue(selectedCert.user, 'department', 'Department'), ['Кафедра', 'Department', 'Chair']) || 'Данные отсутствуют'}</span>
 
                                         <span>Институт</span>
-                                        <span>{getTextValue(selectedCert.user, 'institute', 'Institute') || 'Данные отсутствуют'}</span>
+                                        <span>{stripLeadingLabel(getTextValue(selectedCert.user, 'institute', 'Institute'), ['Институт', 'Institute']) || 'Данные отсутствуют'}</span>
                                     </div>
                                 </div>
 

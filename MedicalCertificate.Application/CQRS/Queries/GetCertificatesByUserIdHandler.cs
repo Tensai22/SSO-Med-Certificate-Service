@@ -25,7 +25,8 @@ namespace MedicalCertificate.Application.CQRS.Queries
                 StartDate = c.StartDate,
                 EndDate = c.EndDate,
                 StatusId = c.StatusId,
-                CreatedAt = c.CreatedAt
+                CreatedAt = c.CreatedAt,
+                ReviewerComment = c.ReviewerComment
             }).ToList();
 
             return Result.Success(dtos);

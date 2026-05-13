@@ -39,6 +39,7 @@ function StudentCertificateContent() {
     const [certificates, setCertificates] = useState([]);
     const [file, setFile] = useState(null);
     const [formData, setFormData] = useState(initialFormState);
+    const [selectedRejectionReason, setSelectedRejectionReason] = useState(null);
 
     const fetchCertificates = useCallback(async () => {
         const userId = getCurrentUserId();
@@ -137,6 +138,10 @@ function StudentCertificateContent() {
         return date.toLocaleDateString('ru-RU');
     };
 
+    const closeReasonModal = () => {
+        setSelectedRejectionReason(null);
+    };
+
     return (
         <div className="page-container">
             <aside className="sidebar">
@@ -214,6 +219,15 @@ function StudentCertificateContent() {
                                                     }[cert.statusId] || 'Неизвестный статус'
                                                 }
                                             </span>
+                                            {cert.statusId === 3 && (
+                                                <button
+                                                    type="button"
+                                                    className="status-reason-btn"
+                                                    onClick={() => setSelectedRejectionReason(cert)}
+                                                >
+                                                    Причина
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 )) : (
@@ -226,6 +240,22 @@ function StudentCertificateContent() {
                     </div>
                 )}
             </main>
+
+            {selectedRejectionReason && (
+                <div className="reason-modal-overlay" onClick={closeReasonModal}>
+                    <div className="reason-modal" onClick={(event) => event.stopPropagation()}>
+                        <div className="reason-modal-header">
+                            <h3>Причина отклонения</h3>
+                            <button type="button" className="reason-modal-close" onClick={closeReasonModal}>
+                                &times;
+                            </button>
+                        </div>
+                        <div className="reason-modal-body">
+                            <p>{selectedRejectionReason.reviewerComment || 'Причина не указана'}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -43,6 +43,8 @@ namespace MedicalCertificate.Infrastructure.Repositories
                         .ThenInclude(o => o!.Parent)
                         .ThenInclude(p => p!.Parent)
                         .ThenInclude(pp => pp!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Employee)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
         
@@ -66,6 +68,8 @@ namespace MedicalCertificate.Infrastructure.Repositories
                         .ThenInclude(o => o!.Parent)
                         .ThenInclude(p => p!.Parent)
                         .ThenInclude(pp => pp!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Employee)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
         
@@ -88,6 +92,8 @@ namespace MedicalCertificate.Infrastructure.Repositories
                         .ThenInclude(o => o!.Parent)
                         .ThenInclude(p => p!.Parent)
                         .ThenInclude(pp => pp!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Employee)
                 .ToListAsync();
         }
         public async Task<IEnumerable<User>> GetAllAsync()

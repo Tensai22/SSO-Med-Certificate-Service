@@ -1,9 +1,10 @@
 using MedicalCertificate.Application.CQRS.Commands;
 using MedicalCertificate.Application.CQRS.Queries;
 using MedicalCertificate.Application.Interfaces;
-using MedicalCertificate.Application.Mapping;
 using MedicalCertificate.WebAPI.Contracts;
 using MedicalCertificate.WebAPI.Security;
+using MedicalCertificate.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,7 +16,7 @@ namespace MedicalCertificate.WebAPI.Controllers;
 public class CertificateController(
     ILogger<CertificateController> logger,
     IUserRepository userRepository,
-    IEduUserRepository eduUserRepository) : BaseController
+    AppDbContext dbContext) : BaseController
 {
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
@@ -46,29 +47,38 @@ public class CertificateController(
     [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> GetFilters()
     {
-        var eduUsers = await eduUserRepository.GetAllWithRelationsAsync();
-        var educationInfo = eduUsers
-            .Select(EduUserMapper.ResolveEducationInfo)
-            .ToArray();
+        var orgUnits = await dbContext.Edu_OrgUnits
+            .AsNoTracking()
+            .Include(unit => unit.Type)
+            .Where(unit => !unit.Deleted && unit.Type != null)
+            .Select(unit => new
+            {
+                id = unit.ID,
+                title = unit.Title,
+                parentId = unit.ParentID,
+                typeTitle = unit.Type!.Title
+            })
+            .ToListAsync();
 
-        var departments = educationInfo
-            .Select(x => x.Department)
+        var departments = orgUnits
+            .Where(unit => IsOrgUnitType(unit.typeTitle, "кафедра", "Department", "chair"))
+            .Select(unit => unit.title?.Trim())
             .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(value => value)
             .ToArray();
 
-        var institutes = educationInfo
-            .Select(x => x.Institute)
+        var institutes = orgUnits
+            .Where(unit => IsOrgUnitType(unit.typeTitle, "Институт", "Institute", "instit"))
+            .Select(unit => unit.title?.Trim())
             .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(value => value)
             .ToArray();
 
         return Ok(new
         {
+            orgUnits,
             departments,
             institutes
         });
@@ -253,5 +263,16 @@ public class CertificateController(
         }
 
         return User.GetCurrentEduUserId();
+    }
+
+    private static bool IsOrgUnitType(string? actualType, params string[] expectedTypes)
+    {
+        if (string.IsNullOrWhiteSpace(actualType))
+        {
+            return false;
+        }
+
+        return expectedTypes.Any(expected =>
+            string.Equals(actualType.Trim(), expected, StringComparison.OrdinalIgnoreCase));
     }
 }

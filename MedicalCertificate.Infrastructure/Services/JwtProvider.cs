@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using MedicalCertificate.Application.Interfaces;
+using MedicalCertificate.Application.Mapping;
 using MedicalCertificate.Domain.Entities;
 using MedicalCertificate.Domain.Options;
 using Microsoft.Extensions.Options;
@@ -15,13 +16,15 @@ public class JwtProvider(IOptions<JwtConfigurationOptions> options) : IJwtProvid
 
     public string GenerateToken(User user)
     {
+        var roleId = EduUserMapper.ResolveRoleId(user.EduUser, user.RoleId);
+        var roleName = EduUserMapper.ResolveRoleName(user.EduUser, user.Role?.Name ?? "User");
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.Role, user.Role?.Name ?? "User"),
-            new("roleId", user.RoleId.ToString()),
+            new(ClaimTypes.Role, roleName),
+            new("roleId", roleId.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
 

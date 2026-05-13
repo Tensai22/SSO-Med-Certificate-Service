@@ -68,12 +68,12 @@ public class AuthController(IMediator mediator, IUserRepository userRepository) 
                 user.Id,
                 user.Email,
                 user.IIN,
-                user.RoleId,
+                RoleId = MedicalCertificate.Application.Mapping.EduUserMapper.ResolveRoleId(user.EduUser, user.RoleId),
                 user.EduUserId,
                 userName = EduUserMapper.GetDisplayName(user.EduUser),
                 fullName = EduUserMapper.GetDisplayName(user.EduUser),
                 EduUser = user.EduUser is null ? null : EduUserMapper.ToUserDto(user.EduUser),
-                RoleName = user.Role?.Name
+                RoleName = EduUserMapper.ResolveRoleName(user.EduUser, user.Role?.Name ?? string.Empty)
             }
         });
     }

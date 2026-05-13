@@ -33,17 +33,20 @@ function Header() {
             };
         }
 
-        setUserName(user.fullName || user.userName || user.UserName || 'Пользователь');
+        const storedFullName = user.fullName || user.FullName || '';
+        setUserName(storedFullName || user.userName || user.UserName || 'Пользователь');
         setUserRole(isRegistrarRole(user.roleId, user.roleName) ? 'Регистратура' : 'Бакалавриат');
 
         const loadCurrentUser = async () => {
-            if (user.fullName || user.userName || user.UserName) {
-                return;
-            }
-
             const response = await apiClient.get('/Auth/me');
             const profile = response?.data?.user ?? response?.data;
-            const resolvedName = profile?.fullName || profile?.userName || profile?.UserName || '';
+            const resolvedName = profile?.fullName
+                || profile?.FullName
+                || profile?.EduUser?.fullName
+                || profile?.EduUser?.FullName
+                || profile?.userName
+                || profile?.UserName
+                || '';
 
             if (!isMounted || !resolvedName) {
                 return;
@@ -55,6 +58,7 @@ function Header() {
             localStorage.setItem('user', JSON.stringify({
                 ...currentUser,
                 ...profile,
+                fullName: resolvedName,
                 userName: resolvedName,
             }));
         };
