@@ -25,6 +25,11 @@ public class JwtProvider(IOptions<JwtConfigurationOptions> options) : IJwtProvid
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N"))
         };
 
+        if (user.EduUserId.HasValue)
+        {
+            claims.Add(new Claim("eduUserId", user.EduUserId.Value.ToString()));
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Key));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

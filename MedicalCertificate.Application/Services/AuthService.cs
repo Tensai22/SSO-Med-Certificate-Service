@@ -3,6 +3,7 @@ using MedicalCertificate.Application.Interfaces;
 using MedicalCertificate.Domain.Constants;
 using MedicalCertificate.Domain.Entities;
 using MedicalCertificate.Domain.Options;
+using MedicalCertificate.Application.Mapping;
 using KDS.Primitives.FluentResult;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -13,20 +14,29 @@ using BC = BCrypt.Net.BCrypt;
 
 namespace MedicalCertificate.Application.Services
 {
+    // TODO(copilot): auth is still using EDU-backed display data; remove this bridge when the UI no longer needs it.
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IEduUserRepository _eduUserRepository;
+        private readonly IRepository<Edu_Students> _eduStudentRepository;
         private readonly JwtConfigurationOptions _jwtConfig;
 
-        public AuthService(IUserService userService, IUserRepository userRepository, IOptions<JwtConfigurationOptions> jwtOptions)
+        public AuthService(
+            IUserRepository userRepository,
+            IEduUserRepository eduUserRepository,
+            IRepository<Edu_Students> eduStudentRepository,
+            IOptions<JwtConfigurationOptions> jwtOptions)
         {
             _userRepository = userRepository;
+            _eduUserRepository = eduUserRepository;
+            _eduStudentRepository = eduStudentRepository;
             _jwtConfig = jwtOptions.Value;
         }
 
         public async Task<Result<AuthResponseDto>> LoginAsync(LoginDTO loginDto)
         {
-            var user = await _userRepository.GetByEmailAsync(loginDto.Email);
+            var user = await _userRepository.GetByEmailWithRoleAsync(loginDto.Email);
 
             if (user is null)
             {
@@ -46,7 +56,8 @@ namespace MedicalCertificate.Application.Services
             {
                 Token = token,
                 Email = user.Email,
-                UserName = user.UserName ?? string.Empty,
+                UserName = EduUserMapper.GetDisplayName(user.EduUser),
+                EduUserId = user.EduUserId,
                 RoleId = user.RoleId,
                 RoleName = user.Role?.Name ?? string.Empty,
                 UserId = user.Id
@@ -64,42 +75,86 @@ namespace MedicalCertificate.Application.Services
 
             string passwordHash = BC.HashPassword(registerDto.Password);
 
+            var eduUser = await _eduUserRepository.GetByEmailWithRelationsAsync(registerDto.Email);
+            if (eduUser is null)
+            {
+                eduUser = new Edu_Users
+                {
+                    LastName = registerDto.Email.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? registerDto.Email,
+                    Email = registerDto.Email,
+                    LastUpdatedBy = registerDto.Email,
+                    LastUpdatedOn = DateTime.UtcNow,
+                    Resident = false
+                };
+                await _eduUserRepository.AddAsync(eduUser);
+            }
+
+            await EnsureStudentProfileAsync(eduUser, registerDto.Email, registerDto.RoleId);
+
             var user = new User
             {
                 Email = registerDto.Email,
                 RoleId = registerDto.RoleId,
-                PasswordHash = passwordHash
+                PasswordHash = passwordHash,
+                IIN = string.Empty,
+                EduUserId = eduUser.ID
             };
 
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
 
-            var token = GenerateJwtToken(user);
+            var createdUser = await _userRepository.GetByEmailWithRoleAsync(registerDto.Email) ?? user;
+            var token = GenerateJwtToken(createdUser);
 
             return new AuthResponseDto
             {
                 Token = token,
-                Email = user.Email,
-                UserName = user.UserName ?? string.Empty,
-                RoleId = user.RoleId,
-                RoleName = user.Role?.Name ?? string.Empty,
-                UserId = user.Id
+                Email = createdUser.Email,
+                UserName = EduUserMapper.GetDisplayName(createdUser.EduUser),
+                EduUserId = createdUser.EduUserId,
+                RoleId = createdUser.RoleId,
+                RoleName = createdUser.Role?.Name ?? string.Empty,
+                UserId = createdUser.Id
             };
+        }
+
+        private async Task EnsureStudentProfileAsync(Edu_Users eduUser, string updatedBy, int roleId)
+        {
+            if (roleId != RoleIds.Student || eduUser.Student is not null)
+            {
+                return;
+            }
+
+            await _eduStudentRepository.AddAsync(new Edu_Students
+            {
+                StudentID = eduUser.ID,
+                NeedsDorm = false,
+                AltynBelgi = false,
+                Year = 1,
+                LastUpdatedBy = updatedBy,
+                LastUpdatedOn = DateTime.UtcNow
+            });
         }
 
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_jwtConfig.Key);
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.Role, user.Role?.Name ?? string.Empty)
+            };
+
+            if (user.EduUserId.HasValue)
+            {
+                claims.Add(new Claim("eduUserId", user.EduUserId.Value.ToString()));
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Email, user.Email),
-                    new Claim(ClaimTypes.Role, user.Role?.Name ?? string.Empty)
-                }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddHours(_jwtConfig.ExpirationHours),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
                 Issuer = _jwtConfig.Issuer,

@@ -1,5 +1,7 @@
 using MedicalCertificate.Application.CQRS.Commands;
 using MedicalCertificate.Application.CQRS.Queries;
+using MedicalCertificate.Application.Interfaces;
+using MedicalCertificate.Application.Mapping;
 using MedicalCertificate.WebAPI.Contracts;
 using MedicalCertificate.WebAPI.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +12,10 @@ namespace MedicalCertificate.WebAPI.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/[controller]")]
-public class CertificateController(ILogger<CertificateController> logger) : BaseController
+public class CertificateController(
+    ILogger<CertificateController> logger,
+    IUserRepository userRepository,
+    IEduUserRepository eduUserRepository) : BaseController
 {
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
@@ -37,16 +42,55 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
         return Ok(result.Value);
     }
 
+    [HttpGet("filters")]
+    [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
+    public async Task<IActionResult> GetFilters()
+    {
+        var eduUsers = await eduUserRepository.GetAllWithRelationsAsync();
+        var educationInfo = eduUsers
+            .Select(EduUserMapper.ResolveEducationInfo)
+            .ToArray();
+
+        var departments = educationInfo
+            .Select(x => x.Department)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value)
+            .ToArray();
+
+        var institutes = educationInfo
+            .Select(x => x.Institute)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value)
+            .ToArray();
+
+        return Ok(new
+        {
+            departments,
+            institutes
+        });
+    }
+
     [HttpGet("user/{userId:int}")]
     public async Task<IActionResult> GetByUserId(int userId)
     {
-        var currentUserId = User.GetCurrentUserId();
-        if (!User.IsRegistrar() && currentUserId != userId)
+        var effectiveUserId = userId;
+
+        if (!User.IsRegistrar())
         {
-            return Forbid();
+            var currentUserId = await ResolveCurrentEduUserIdAsync();
+            if (!currentUserId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            effectiveUserId = currentUserId.Value;
         }
 
-        var result = await mediator.Send(new GetCertificatesByUserIdQuery(userId));
+        var result = await mediator.Send(new GetCertificatesByUserIdQuery(effectiveUserId));
         if (result.IsFailed)
         {
             return GenerateProblemResponse(result.Error);
@@ -71,15 +115,17 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateCertificateRequest request)
     {
-        var currentUserId = User.GetCurrentUserId();
+        var currentUserId = await ResolveCurrentEduUserIdAsync();
         if (!currentUserId.HasValue)
         {
             return Unauthorized();
         }
 
-        var targetUserId = User.IsRegistrar()
-            ? request.UserId
-            : currentUserId.Value;
+        var targetUserId = request.UserId;
+        if (!User.IsRegistrar())
+        {
+            targetUserId = currentUserId.Value;
+        }
 
         var command = new CreateCertificateCommand
         {
@@ -134,7 +180,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Approve(int id)
     {
-        var actorUserId = User.GetCurrentUserId();
+        var actorUserId = await ResolveCurrentEduUserIdAsync();
         if (!actorUserId.HasValue)
         {
             return Unauthorized();
@@ -162,7 +208,7 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
     [Authorize(Policy = AuthorizationPolicies.RegistrarOnly)]
     public async Task<IActionResult> Reject(int id, [FromBody] RejectCertificateRequest request)
     {
-        var actorUserId = User.GetCurrentUserId();
+        var actorUserId = await ResolveCurrentEduUserIdAsync();
         if (!actorUserId.HasValue)
         {
             return Unauthorized();
@@ -190,5 +236,22 @@ public class CertificateController(ILogger<CertificateController> logger) : Base
         }
 
         return Ok("Справка удалена");
+    }
+
+    private async Task<int?> ResolveCurrentEduUserIdAsync()
+    {
+        var currentAuthUserId = User.GetCurrentUserId();
+        if (!currentAuthUserId.HasValue)
+        {
+            return null;
+        }
+
+        var authUser = await userRepository.GetByIdWithRoleAsync(currentAuthUserId.Value);
+        if (authUser?.EduUserId.HasValue == true)
+        {
+            return authUser.EduUserId.Value;
+        }
+
+        return User.GetCurrentEduUserId();
     }
 }

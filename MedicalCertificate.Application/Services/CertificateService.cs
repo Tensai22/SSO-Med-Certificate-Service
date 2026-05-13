@@ -1,5 +1,6 @@
-﻿using MedicalCertificate.Application.DTOs;
+using MedicalCertificate.Application.DTOs;
 using MedicalCertificate.Application.Interfaces;
+using MedicalCertificate.Application.Mapping;
 using MedicalCertificate.Domain.Constants;
 using MedicalCertificate.Domain.Entities;
 using KDS.Primitives.FluentResult;
@@ -7,17 +8,21 @@ using KDS.Primitives.FluentResult;
 
 namespace MedicalCertificate.Application.Services;
 
+// TODO(copilot): keep only certificate-required user projection here after the Edu-only cleanup lands.
 public class CertificateService : ICertificateService
     {
         private readonly ICertificateRepository _certificateRepository;
         private readonly ICertificateStatusHistoryRepository _certificateStatusHistoryRepository;
+        private readonly IEduUserRepository _eduUserRepository;
         public CertificateService(
             ICertificateRepository certificateRepository,
-            ICertificateStatusHistoryRepository certificateStatusHistoryRepository
+            ICertificateStatusHistoryRepository certificateStatusHistoryRepository,
+            IEduUserRepository eduUserRepository
             )
         {
             _certificateRepository = certificateRepository;
             _certificateStatusHistoryRepository = certificateStatusHistoryRepository;
+            _eduUserRepository = eduUserRepository;
         }
 
         public async Task<Result<CertificateDto>> CreateAsync(CertificateDto dto, CancellationToken cancellationToken)
@@ -48,11 +53,12 @@ public class CertificateService : ICertificateService
 
         public async Task<Result<CertificateDto?>> GetByIdAsync(int id)
         {
-            var certificate = await _certificateRepository.GetByIdAsync(id);
+            var certificate = await _certificateRepository.GetByIdWithStatusAsync(id);
 
             if (certificate == null)
                 return Result.Failure<CertificateDto?>(new Error(ErrorCode.NotFound, $"Cправка с ID {id} не найдена."));
 
+            var eduUser = await _eduUserRepository.GetByIdWithRelationsAsync(certificate.UserId);
             var dto = new CertificateDto
             {
                 Id = certificate.Id,
@@ -66,14 +72,9 @@ public class CertificateService : ICertificateService
                 ReviewerComment = certificate.ReviewerComment,
                 CreatedAt = certificate.CreatedAt,
 
-                // И СЮДА ТОЖЕ:
-                User = certificate.User != null ? new UserDto
-                {
-                    Id = certificate.User.Id,
-                    UserName = certificate.User.UserName,
-                    IIN = certificate.User.IIN,
-                    Email = certificate.User.Email
-                } : null
+                User = eduUser is null
+                    ? certificate.User is null ? null : EduUserMapper.ToUserDto(certificate.User)
+                    : EduUserMapper.ToUserDto(eduUser)
             };
 
             return dto;
@@ -82,10 +83,13 @@ public class CertificateService : ICertificateService
         public async Task<Result<CertificateDto[]>> GetAllAsync()
         {
             // 1. Получаем справки (Убедитесь, что репозиторий подгружает .Include(u => u.User))
-            var certificates = await _certificateRepository.GetAllAsync();
+            var certificates = await _certificateRepository.GetAllWithStatusAsync();
 
             if (!certificates.Any())
                 return Result.Failure<CertificateDto[]>(new Error(ErrorCode.NotFound, "Справок нет."));
+
+            var eduUsers = (await _eduUserRepository.GetAllWithRelationsAsync())
+                .ToDictionary(user => user.ID);
 
             // 2. Добавляем создание UserDto внутри Select
             var result = certificates.Select(c => new CertificateDto
@@ -101,14 +105,9 @@ public class CertificateService : ICertificateService
                 ReviewerComment = c.ReviewerComment,
                 CreatedAt = c.CreatedAt,
 
-                // ВОТ ЭТО НУЖНО ДОБАВИТЬ:
-                User = c.User != null ? new UserDto
-                {
-                    Id = c.User.Id,
-                    UserName = c.User.UserName,
-                    IIN = c.User.IIN, // Теперь ИИН попадет в DTO
-                    Email = c.User.Email
-                } : null
+                User = eduUsers.TryGetValue(c.UserId, out var eduUser)
+                    ? EduUserMapper.ToUserDto(eduUser)
+                    : c.User is null ? null : EduUserMapper.ToUserDto(c.User)
             }).ToArray();
 
             return result;

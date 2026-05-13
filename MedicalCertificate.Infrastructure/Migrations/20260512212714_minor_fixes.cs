@@ -5,7 +5,7 @@
 namespace MedicalCertificate.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class redatabase : Migration
+    public partial class minor_fixes : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

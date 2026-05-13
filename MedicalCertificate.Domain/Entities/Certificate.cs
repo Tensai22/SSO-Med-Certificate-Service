@@ -13,7 +13,8 @@ namespace MedicalCertificate.Domain.Entities
         public string ReviewerComment { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public User? User { get; set; }
+        // TODO(copilot): certificate stays, but the linked profile is still bridged through Edu_Users for now.
+        public Edu_Users? User { get; set; }
         public CertificateStatus? Status { get; set; }
         public ICollection<CertificateStatusHistory>? StatusHistories { get; set; }= new List<CertificateStatusHistory>();
     }

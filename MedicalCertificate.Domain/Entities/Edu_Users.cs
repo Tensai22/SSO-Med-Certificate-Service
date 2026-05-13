@@ -1,9 +1,9 @@
-namespace MedicalCertificate.Application.DTOs
+namespace MedicalCertificate.Domain.Entities
 {
-    // TODO(copilot): this DTO still carries transition-only EDU profile fields; trim it once only certificate needs remain.
-    public class UserDto
+    // TODO(copilot): keep this as the source of truth for profile data and prune any leftover auth-only links later.
+    public class Edu_Users
     {
-        public int Id { get; set; }
+        public int ID { get; set; }
         public string LastName { get; set; } = null!;
         public string? FirstName { get; set; }
         public string? MiddleName { get; set; }
@@ -32,15 +32,12 @@ namespace MedicalCertificate.Application.DTOs
         public int? MessengerTypeID { get; set; }
         public int? CitizenshipCountryID { get; set; }
         public int? CitizenCategoryID { get; set; }
-        public string? Department { get; set; }
-        public string? Institute { get; set; }
 
         public string FullName => $"{LastName} {FirstName} {MiddleName}".Trim();
-        public string ShortName => $"{LastName} {FormatInitial(FirstName)} {FormatInitial(MiddleName)}".Trim();
+        public string ShortName => $"{LastName} {FirstName?.FirstOrDefault()}. {MiddleName?.FirstOrDefault()}.".Trim();
 
-        private static string FormatInitial(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value) ? string.Empty : $"{value[0]}.";
-        }
+        public User? User { get; set; }
+        public Edu_Students? Student { get; set; }
+        public Edu_Employees? Employee { get; set; }
     }
 }

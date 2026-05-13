@@ -6,9 +6,6 @@ namespace MedicalCertificate.Application.CQRS.Commands;
 
 public record RegisterCommand(
     [param: Required]
-    [param: StringLength(120, MinimumLength = 2)]
-    string UserName,
-    [param: Required]
     [param: EmailAddress]
     string Email,
     [param: Required]

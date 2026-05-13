@@ -4,6 +4,7 @@ using MedicalCertificate.WebAPI.Contracts;
 using MedicalCertificate.WebAPI.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace MedicalCertificate.WebAPI.Controllers;
 
@@ -37,7 +38,7 @@ public class UserController(ILogger<UserController> logger) : BaseController
     }
 
     [HttpGet("email/{email}")]
-    public async Task<IActionResult> GetByUsername(string email)
+    public async Task<IActionResult> GetByEmail(string email)
     {
         var result = await mediator.Send(new GetUserByEmailQuery(email));
         if (result.IsFailed)
@@ -51,12 +52,40 @@ public class UserController(ILogger<UserController> logger) : BaseController
     [HttpPost]
     public async Task<IActionResult> Post([FromBody] CreateUserRequest createUserRequest)
     {
+        var lastUpdatedBy = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(lastUpdatedBy))
+        {
+            return Unauthorized();
+        }
+
         var result = await mediator.Send(new CreateUserCommand(
-            createUserRequest.UserName,
-            createUserRequest.Email,
-            createUserRequest.Password,
-            createUserRequest.RoleId,
-            createUserRequest.IIN));
+            lastName: createUserRequest.LastName,
+            firstName: createUserRequest.FirstName,
+            middleName: createUserRequest.MiddleName,
+            email: createUserRequest.Email,
+            personalEmail: createUserRequest.PersonalEmail,
+            dob: createUserRequest.DOB,
+            placeOfBirth: createUserRequest.PlaceOfBirth,
+            male: createUserRequest.Male,
+            homePhone: createUserRequest.HomePhone,
+            mobilePhone: createUserRequest.MobilePhone,
+            iin: createUserRequest.IIN,
+            photoFileName: createUserRequest.PhotoFileName,
+            photoFileData: createUserRequest.PhotoFileData,
+            fileContainerId: createUserRequest.FileContainerID,
+            mobilePushId: createUserRequest.MobilePushID,
+            oldId: createUserRequest.oldId,
+            esuvoId: createUserRequest.ESUVOID,
+            extraFileContainerId: createUserRequest.ExtraFileContainerID,
+            resident: createUserRequest.Resident,
+            heroPersonId: createUserRequest.Hero_Person_ID,
+            isReadTeamsNotif: createUserRequest.IsReadTeamsNotif,
+            nationalityId: createUserRequest.NationalityID,
+            maritalStatusId: createUserRequest.MaritalStatusID,
+            messengerTypeId: createUserRequest.MessengerTypeID,
+            citizenshipCountryId: createUserRequest.CitizenshipCountryID,
+            citizenCategoryId: createUserRequest.CitizenCategoryID,
+            lastUpdatedBy: lastUpdatedBy));
 
         if (result.IsFailed)
         {
@@ -69,9 +98,15 @@ public class UserController(ILogger<UserController> logger) : BaseController
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Put(int id, [FromBody] UpdateUserCommand command)
     {
-        using (logger.BeginScope(new Dictionary<string, string> { { "UserName", command.UserName } }))
+        var lastUpdatedBy = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(lastUpdatedBy))
         {
-            var updatedCommand = command with { Id = id };
+            return Unauthorized();
+        }
+
+        using (logger.BeginScope(new Dictionary<string, string> { { "LastName", command.LastName } }))
+        {
+            var updatedCommand = command with { Id = id, LastUpdatedBy = lastUpdatedBy };
             var result = await mediator.Send(updatedCommand);
 
             if (result.IsFailed)

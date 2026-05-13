@@ -4,6 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
     approveCertificate,
+    fetchCertificateFilters,
     fetchAllCertificates,
     rejectCertificate,
 } from '../services/certificateService';
@@ -13,19 +14,49 @@ const PAGE_SIZE = 30;
 const INITIAL_SEARCH_FILTERS = {
     fullName: '',
     iin: '',
+    department: '',
+    institute: '',
     clinic: '',
     studentComment: '',
     registrarComment: '',
 };
 
+const getTextValue = (source, ...keys) => {
+    for (const key of keys) {
+        const value = source?.[key];
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+
+    return '';
+};
+
+const uniqueSortedValues = (items, selector) => {
+    return Array.from(
+        new Set(
+            items
+                .map(selector)
+                .map((value) => (typeof value === 'string' ? value.trim() : ''))
+                .filter(Boolean),
+        ),
+    ).sort((a, b) => a.localeCompare(b, 'ru'));
+};
+
 const RegistrarPage = () => {
     const [activeTab, setActiveTab] = useState('vkhodyashie');
+    const [allCertificates, setAllCertificates] = useState([]);
     const [certificates, setCertificates] = useState([]);
+    const [filterOptions, setFilterOptions] = useState({
+        departments: [],
+        institutes: [],
+    });
     const [selectedCert, setSelectedCert] = useState(null);
     const [registrarComment, setRegistrarComment] = useState('');
     const [searchFilters, setSearchFilters] = useState(INITIAL_SEARCH_FILTERS);
     const [statusFilter, setStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [activeDropdown, setActiveDropdown] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [previewType, setPreviewType] = useState('');
     const [previewError, setPreviewError] = useState('');
@@ -34,6 +65,7 @@ const RegistrarPage = () => {
     const fetchCertificates = useCallback(async () => {
         try {
             const allData = await fetchAllCertificates();
+            setAllCertificates(allData);
 
             if (activeTab === 'vkhodyashie') {
                 setCertificates(allData.filter((cert) => cert.statusId === 1));
@@ -46,9 +78,25 @@ const RegistrarPage = () => {
         }
     }, [activeTab]);
 
+    const fetchFilterOptions = useCallback(async () => {
+        try {
+            const data = await fetchCertificateFilters();
+            setFilterOptions({
+                departments: Array.isArray(data?.departments) ? data.departments : [],
+                institutes: Array.isArray(data?.institutes) ? data.institutes : [],
+            });
+        } catch (error) {
+            console.error('Ошибка при загрузке фильтров:', error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchCertificates();
     }, [fetchCertificates]);
+
+    useEffect(() => {
+        fetchFilterOptions();
+    }, [fetchFilterOptions]);
 
     useEffect(() => {
         let objectUrl;
@@ -145,26 +193,34 @@ const RegistrarPage = () => {
                 return false;
             }
 
-            const fullName = (cert.user?.userName || cert.user?.name || '').toLowerCase();
-            const iin = (cert.user?.iin || '').toLowerCase();
+            const fullName = getTextValue(cert.user, 'fullName', 'FullName', 'userName', 'UserName', 'name', 'Name').toLowerCase();
+            const iin = getTextValue(cert.user, 'iin', 'IIN').toLowerCase();
+            const department = getTextValue(cert.user, 'department', 'Department').toLowerCase();
+            const institute = getTextValue(cert.user, 'institute', 'Institute').toLowerCase();
             const clinic = (cert.clinic || '').toLowerCase();
             const studentComment = (cert.comment || '').toLowerCase();
             const reviewerComment = (cert.reviewerComment || '').toLowerCase();
 
             const normalizedFullName = searchFilters.fullName.trim().toLowerCase();
             const normalizedIin = searchFilters.iin.trim().toLowerCase();
+            const normalizedDepartment = searchFilters.department.trim().toLowerCase();
+            const normalizedInstitute = searchFilters.institute.trim().toLowerCase();
             const normalizedClinic = searchFilters.clinic.trim().toLowerCase();
             const normalizedStudentComment = searchFilters.studentComment.trim().toLowerCase();
             const normalizedRegistrarComment = searchFilters.registrarComment.trim().toLowerCase();
 
             const matchesFullName = !normalizedFullName || fullName.includes(normalizedFullName);
             const matchesIin = !normalizedIin || iin.includes(normalizedIin);
+            const matchesDepartment = !normalizedDepartment || department.includes(normalizedDepartment);
+            const matchesInstitute = !normalizedInstitute || institute.includes(normalizedInstitute);
             const matchesClinic = !normalizedClinic || clinic.includes(normalizedClinic);
             const matchesStudentComment = !normalizedStudentComment || studentComment.includes(normalizedStudentComment);
             const matchesRegistrarComment = !normalizedRegistrarComment || reviewerComment.includes(normalizedRegistrarComment);
 
             return matchesFullName
                 && matchesIin
+                && matchesDepartment
+                && matchesInstitute
                 && matchesClinic
                 && matchesStudentComment
                 && matchesRegistrarComment;
@@ -178,6 +234,29 @@ const RegistrarPage = () => {
         return filteredCertificates.slice(startIndex, startIndex + PAGE_SIZE);
     }, [filteredCertificates, currentPage]);
 
+    const eduFilterOptions = useMemo(() => ({
+        department: filterOptions.departments.length > 0
+            ? filterOptions.departments
+            : uniqueSortedValues(allCertificates, (cert) => getTextValue(cert.user, 'department', 'Department')),
+        institute: filterOptions.institutes.length > 0
+            ? filterOptions.institutes
+            : uniqueSortedValues(allCertificates, (cert) => getTextValue(cert.user, 'institute', 'Institute')),
+    }), [allCertificates, filterOptions.departments, filterOptions.institutes]);
+
+    const departmentSuggestions = useMemo(() => {
+        const query = searchFilters.department.trim().toLowerCase();
+        return query
+            ? eduFilterOptions.department.filter((value) => value.toLowerCase().includes(query))
+            : eduFilterOptions.department;
+    }, [eduFilterOptions.department, searchFilters.department]);
+
+    const instituteSuggestions = useMemo(() => {
+        const query = searchFilters.institute.trim().toLowerCase();
+        return query
+            ? eduFilterOptions.institute.filter((value) => value.toLowerCase().includes(query))
+            : eduFilterOptions.institute;
+    }, [eduFilterOptions.institute, searchFilters.institute]);
+
     useEffect(() => {
         setCurrentPage(1);
     }, [searchFilters, statusFilter, activeTab]);
@@ -187,6 +266,11 @@ const RegistrarPage = () => {
             ...prev,
             [field]: value,
         }));
+    };
+
+    const selectSuggestion = (field, value) => {
+        updateSearchFilter(field, value);
+        setActiveDropdown(null);
     };
 
     useEffect(() => {
@@ -245,6 +329,70 @@ const RegistrarPage = () => {
                             value={searchFilters.iin}
                             onChange={(e) => updateSearchFilter('iin', e.target.value)}
                         />
+                        <div className="registrar-filter-group">
+                            <input
+                                className="registrar-filter-input"
+                                type="text"
+                                placeholder="Кафедра"
+                                value={searchFilters.department}
+                                onChange={(e) => {
+                                    updateSearchFilter('department', e.target.value);
+                                    setActiveDropdown('department');
+                                }}
+                                onFocus={() => setActiveDropdown('department')}
+                                onBlur={() => setActiveDropdown((current) => (current === 'department' ? null : current))}
+                                autoComplete="off"
+                            />
+                            {activeDropdown === 'department' && departmentSuggestions.length > 0 && (
+                                <div className="registrar-dropdown">
+                                    {departmentSuggestions.map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            className="registrar-dropdown-option"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                selectSuggestion('department', value);
+                                            }}
+                                        >
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="registrar-filter-group">
+                            <input
+                                className="registrar-filter-input"
+                                type="text"
+                                placeholder="Институт"
+                                value={searchFilters.institute}
+                                onChange={(e) => {
+                                    updateSearchFilter('institute', e.target.value);
+                                    setActiveDropdown('institute');
+                                }}
+                                onFocus={() => setActiveDropdown('institute')}
+                                onBlur={() => setActiveDropdown((current) => (current === 'institute' ? null : current))}
+                                autoComplete="off"
+                            />
+                            {activeDropdown === 'institute' && instituteSuggestions.length > 0 && (
+                                <div className="registrar-dropdown">
+                                    {instituteSuggestions.map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            className="registrar-dropdown-option"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                selectSuggestion('institute', value);
+                                            }}
+                                        >
+                                            {value}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <input
                             className="registrar-filter-input"
                             type="text"
@@ -259,13 +407,15 @@ const RegistrarPage = () => {
                             value={searchFilters.studentComment}
                             onChange={(e) => updateSearchFilter('studentComment', e.target.value)}
                         />
-                        <input
-                            className="registrar-filter-input"
-                            type="text"
-                            placeholder="Комментарий регистратора"
-                            value={searchFilters.registrarComment}
-                            onChange={(e) => updateSearchFilter('registrarComment', e.target.value)}
-                        />
+                        {activeTab !== 'vkhodyashie' && (
+                            <input
+                                className="registrar-filter-input"
+                                type="text"
+                                placeholder="Комментарий регистратора"
+                                value={searchFilters.registrarComment}
+                                onChange={(e) => updateSearchFilter('registrarComment', e.target.value)}
+                            />
+                        )}
                         {activeTab !== 'vkhodyashie' && (
                             <select
                                 className="registrar-status-select"
@@ -391,14 +541,20 @@ const RegistrarPage = () => {
                                 </div>
 
                             <div className="modal-right">
-                                <div className="info-block">
+                                    <div className="info-block">
                                     <h4>Данные студента</h4>
                                     <div className="info-grid">
                                         <span>ФИО</span>
-                                        <span>{selectedCert.user?.userName || selectedCert.user?.name || 'Данные отсутствуют'}</span>
+                                        <span>{getTextValue(selectedCert.user, 'fullName', 'FullName', 'userName', 'UserName', 'name', 'Name') || 'Данные отсутствуют'}</span>
 
                                         <span>ИИН</span>
-                                        <span>{selectedCert.user?.iin || 'Данные отсутствуют'}</span>
+                                        <span>{getTextValue(selectedCert.user, 'iin', 'IIN') || 'Данные отсутствуют'}</span>
+
+                                        <span>Кафедра</span>
+                                        <span>{getTextValue(selectedCert.user, 'department', 'Department') || 'Данные отсутствуют'}</span>
+
+                                        <span>Институт</span>
+                                        <span>{getTextValue(selectedCert.user, 'institute', 'Institute') || 'Данные отсутствуют'}</span>
                                     </div>
                                 </div>
 
@@ -420,7 +576,7 @@ const RegistrarPage = () => {
                                     <div className="info-block action-block">
                                         <h4>Действие</h4>
                                         <textarea
-                                            placeholder="Комментарий регистратора"
+                                            placeholder="Комментарий к отклонению"
                                             value={registrarComment}
                                             onChange={(e) => setRegistrarComment(e.target.value)}
                                         ></textarea>

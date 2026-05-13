@@ -11,6 +11,7 @@
 
         public Certificate? Certificate { get; set; }
         public CertificateStatus? CertificateStatus { get; set; }
+        // TODO(copilot): this still points at the temporary auth User entity; revisit during final cleanup.
         public User? ChangedByUser { get; set; }
     }
 }

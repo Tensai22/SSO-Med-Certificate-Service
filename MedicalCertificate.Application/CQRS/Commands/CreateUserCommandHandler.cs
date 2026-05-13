@@ -11,14 +11,37 @@ public class CreateUserCommandHandler(IUserService userService,ILogger<CreateUse
 {
     public async Task<Result<UserDto>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Отправил запрос на создание клиента");
+        logger.LogInformation("Отправил запрос на создание записи пользователя");
         var result = await userService.CreateAsync(new UserDto
         {
-            UserName = request.UserName,
+            LastName = request.LastName,
             Email = request.Email,
-            Password = request.Password,
-            RoleId = request.RoleId,
-            IIN = request.IIN
+            FirstName = request.FirstName,
+            MiddleName = request.MiddleName,
+            PersonalEmail = request.PersonalEmail,
+            DOB = request.DOB,
+            PlaceOfBirth = request.PlaceOfBirth,
+            Male = request.Male,
+            HomePhone = request.HomePhone,
+            MobilePhone = request.MobilePhone,
+            IIN = request.IIN,
+            PhotoFileName = request.PhotoFileName,
+            PhotoFileData = request.PhotoFileData,
+            FileContainerID = request.FileContainerID,
+            MobilePushID = request.MobilePushID,
+            oldId = request.oldId,
+            ESUVOID = request.ESUVOID,
+            ExtraFileContainerID = request.ExtraFileContainerID,
+            Resident = request.Resident,
+            Hero_Person_ID = request.Hero_Person_ID,
+            IsReadTeamsNotif = request.IsReadTeamsNotif,
+            NationalityID = request.NationalityID,
+            MaritalStatusID = request.MaritalStatusID,
+            MessengerTypeID = request.MessengerTypeID,
+            CitizenshipCountryID = request.CitizenshipCountryID,
+            CitizenCategoryID = request.CitizenCategoryID,
+            LastUpdatedBy = request.LastUpdatedBy,
+            LastUpdatedOn = DateTime.UtcNow
         }, cancellationToken);
 
         if (result.IsFailed)
@@ -27,7 +50,7 @@ public class CreateUserCommandHandler(IUserService userService,ILogger<CreateUse
             return Result.Failure<UserDto>(result.Error);
         }
 
-        logger.LogInformation("Клиент создан");
+        logger.LogInformation("Пользователь создан");
         return result;
     }
 }

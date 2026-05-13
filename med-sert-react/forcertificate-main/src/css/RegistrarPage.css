@@ -145,27 +145,79 @@ input::placeholder {
 }
 
 .registrar-filters {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    align-items: center;
+    align-items: start;
     margin-bottom: 10px;
-    flex-wrap: wrap;
+}
+
+.registrar-filter-group {
+    position: relative;
+    min-width: 0;
 }
 
 .registrar-filter-input {
-    flex: 1 1 220px;
-    min-width: 220px;
+    width: 100%;
+}
+
+.registrar-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: #fff;
+    border: 1px solid #d8e3f2;
+    border-radius: 10px;
+    box-shadow: 0 12px 24px rgba(2, 91, 169, 0.12);
+    padding: 6px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.registrar-dropdown-option {
+    width: 100%;
+    display: block;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    color: #35557e;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.registrar-dropdown-option:hover {
+    background: #edf5ff;
+    color: #025ba9;
+}
+
+.registrar-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.registrar-dropdown::-webkit-scrollbar-thumb {
+    background: #c6d5ea;
+    border-radius: 999px;
 }
 
 .registrar-status-select {
-    flex: 1 1 220px;
-    min-width: 200px;
+    width: 100%;
     padding: 10px 15px;
     border: 1px solid #a3b2cc;
     border-radius: 6px;
     color: #555;
     outline: none;
     background-color: #fff;
+}
+
+@media (max-width: 900px) {
+    .registrar-filters {
+        grid-template-columns: 1fr;
+    }
 }
 
 .status-table th {
@@ -457,7 +509,7 @@ input::placeholder {
 }
 
 .action-block textarea {
-    width: 100%;
+    width: 95%;
     height: 80px;
     padding: 10px;
     border: 1px solid #ccc;

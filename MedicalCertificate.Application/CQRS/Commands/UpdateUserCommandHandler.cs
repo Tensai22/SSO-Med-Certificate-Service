@@ -19,9 +19,34 @@ namespace MedicalCertificate.Application.CQRS.Commands
             var userDto = new UserDto
             {
                 Id = request.Id,
-                UserName = request.UserName,
-                RoleId = request.RoleId,
-                RoleName = request.RoleName
+                LastName = request.LastName,
+                FirstName = request.FirstName,
+                MiddleName = request.MiddleName,
+                Email = request.Email,
+                PersonalEmail = request.PersonalEmail,
+                DOB = request.DOB,
+                PlaceOfBirth = request.PlaceOfBirth,
+                Male = request.Male,
+                HomePhone = request.HomePhone,
+                MobilePhone = request.MobilePhone,
+                IIN = request.IIN,
+                PhotoFileName = request.PhotoFileName,
+                PhotoFileData = request.PhotoFileData,
+                FileContainerID = request.FileContainerID,
+                MobilePushID = request.MobilePushID,
+                oldId = request.oldId,
+                ESUVOID = request.ESUVOID,
+                ExtraFileContainerID = request.ExtraFileContainerID,
+                Resident = request.Resident,
+                Hero_Person_ID = request.Hero_Person_ID,
+                IsReadTeamsNotif = request.IsReadTeamsNotif,
+                NationalityID = request.NationalityID,
+                MaritalStatusID = request.MaritalStatusID,
+                MessengerTypeID = request.MessengerTypeID,
+                CitizenshipCountryID = request.CitizenshipCountryID,
+                CitizenCategoryID = request.CitizenCategoryID,
+                LastUpdatedBy = request.LastUpdatedBy,
+                LastUpdatedOn = DateTime.UtcNow
             };
 
             var result = await _userService.UpdateAsync(request.Id, userDto);

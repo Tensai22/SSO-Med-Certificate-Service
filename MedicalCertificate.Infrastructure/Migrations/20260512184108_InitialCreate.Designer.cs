@@ -4,6 +4,7 @@ using MedicalCertificate.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MedicalCertificate.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512184108_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -94,23 +97,6 @@ namespace MedicalCertificate.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("certificatestatuses", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Status = "В обработке"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Status = "Принято"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Status = "Отклонено"
-                        });
                 });
 
             modelBuilder.Entity("MedicalCertificate.Domain.Entities.CertificateStatusHistory", b =>
@@ -275,8 +261,6 @@ namespace MedicalCertificate.Infrastructure.Migrations
 
                     b.HasKey("ID");
 
-                    b.HasIndex("ParentID");
-
                     b.HasIndex("TypeID");
 
                     b.ToTable("Edu_OrgUnits", (string)null);
@@ -431,8 +415,6 @@ namespace MedicalCertificate.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("StudentID");
-
-                    b.HasIndex("SpecialityID");
 
                     b.ToTable("Edu_Students", (string)null);
                 });
@@ -688,6 +670,10 @@ namespace MedicalCertificate.Infrastructure.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EduUserId")
@@ -793,36 +779,22 @@ namespace MedicalCertificate.Infrastructure.Migrations
 
             modelBuilder.Entity("MedicalCertificate.Domain.Entities.Edu_OrgUnits", b =>
                 {
-                    b.HasOne("MedicalCertificate.Domain.Entities.Edu_OrgUnits", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("MedicalCertificate.Domain.Entities.Edu_OrgUnitTypes", "Type")
                         .WithMany()
                         .HasForeignKey("TypeID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Parent");
-
                     b.Navigation("Type");
                 });
 
             modelBuilder.Entity("MedicalCertificate.Domain.Entities.Edu_Students", b =>
                 {
-                    b.HasOne("MedicalCertificate.Domain.Entities.Edu_OrgUnits", "Speciality")
-                        .WithMany()
-                        .HasForeignKey("SpecialityID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("MedicalCertificate.Domain.Entities.Edu_Users", "User")
                         .WithOne("Student")
                         .HasForeignKey("MedicalCertificate.Domain.Entities.Edu_Students", "StudentID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Speciality");
 
                     b.Navigation("User");
                 });
@@ -874,11 +846,6 @@ namespace MedicalCertificate.Infrastructure.Migrations
                     b.Navigation("Certificates");
 
                     b.Navigation("StatusHistories");
-                });
-
-            modelBuilder.Entity("MedicalCertificate.Domain.Entities.Edu_OrgUnits", b =>
-                {
-                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("MedicalCertificate.Domain.Entities.Edu_Users", b =>

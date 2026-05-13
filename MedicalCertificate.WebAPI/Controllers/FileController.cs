@@ -45,17 +45,20 @@ public class FileController : ControllerBase
     private readonly IFileStorageService _fileStorage;
     private readonly IFileRepository _fileRepository;
     private readonly ICertificateRepository _certificateRepository;
+    private readonly IEduUserRepository _eduUserRepository;
     private readonly MinioOptions _minioOptions;
 
     public FileController(
         IFileStorageService fileStorage,
         IFileRepository fileRepository,
         ICertificateRepository certificateRepository,
+        IEduUserRepository eduUserRepository,
         IOptions<MinioOptions> minioOptions)
     {
         _fileStorage = fileStorage;
         _fileRepository = fileRepository;
         _certificateRepository = certificateRepository;
+        _eduUserRepository = eduUserRepository;
         _minioOptions = minioOptions.Value;
     }
 
@@ -140,14 +143,20 @@ public class FileController : ControllerBase
 
         if (!User.IsRegistrar())
         {
-            var userId = User.GetCurrentUserId();
-            if (!userId.HasValue)
+            var currentEmail = User.GetCurrentEmail();
+            if (string.IsNullOrWhiteSpace(currentEmail))
             {
                 return Unauthorized();
             }
 
+            var currentUser = await _eduUserRepository.GetByEmailAsync(currentEmail);
+            if (currentUser is null)
+            {
+                return Forbid();
+            }
+
             var certificate = await _certificateRepository.GetByFilePathIdAsync(id);
-            if (certificate == null || certificate.UserId != userId.Value)
+            if (certificate == null || certificate.UserId != currentUser.ID)
             {
                 return Forbid();
             }

@@ -13,6 +13,23 @@ public static class ClaimsPrincipalExtensions
         return int.TryParse(rawUserId, out var userId) ? userId : null;
     }
 
+    public static int? GetCurrentEduUserId(this ClaimsPrincipal principal)
+    {
+        var rawEduUserId = principal.FindFirstValue("eduUserId");
+        if (int.TryParse(rawEduUserId, out var eduUserId))
+        {
+            return eduUserId;
+        }
+
+        return principal.GetCurrentUserId();
+    }
+
+    public static string? GetCurrentEmail(this ClaimsPrincipal principal)
+    {
+        return principal.FindFirstValue(ClaimTypes.Email)
+            ?? principal.FindFirstValue(JwtRegisteredClaimNames.Email);
+    }
+
     public static bool IsRegistrar(this ClaimsPrincipal principal)
     {
         var roleId = principal.FindFirstValue("roleId");

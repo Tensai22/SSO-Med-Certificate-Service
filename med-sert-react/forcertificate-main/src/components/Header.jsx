@@ -33,17 +33,17 @@ function Header() {
             };
         }
 
-        setUserName(user.userName || user.UserName || 'Пользователь');
+        setUserName(user.fullName || user.userName || user.UserName || 'Пользователь');
         setUserRole(isRegistrarRole(user.roleId, user.roleName) ? 'Регистратура' : 'Бакалавриат');
 
         const loadCurrentUser = async () => {
-            if (user.userName || user.UserName) {
+            if (user.fullName || user.userName || user.UserName) {
                 return;
             }
 
             const response = await apiClient.get('/Auth/me');
             const profile = response?.data?.user ?? response?.data;
-            const resolvedName = profile?.userName || profile?.UserName || '';
+            const resolvedName = profile?.fullName || profile?.userName || profile?.UserName || '';
 
             if (!isMounted || !resolvedName) {
                 return;

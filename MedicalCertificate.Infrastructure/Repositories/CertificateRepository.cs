@@ -17,27 +17,25 @@ public class CertificateRepository : Repository<Certificate>, ICertificateReposi
 
     public async Task<IEnumerable<Certificate>> GetAllWithSupervisorAsync()
     {
-        return await _context.Certificates.Include(t => t.User).ToListAsync();
+        return await BuildCertificateProfileQuery().ToListAsync();
     }
 
     public async Task<Certificate?> GetByIdWithSupervisorAsync(int id)
     {
-        return await _context.Certificates.Include(t => t.User).FirstOrDefaultAsync(t => t.Id == id);
+        return await BuildCertificateProfileQuery().FirstOrDefaultAsync(t => t.Id == id);
     }
 
     public async Task<IEnumerable<Certificate>> GetAllWithStatusAsync()
     {
-        return await _context.Certificates
+        return await BuildCertificateProfileQuery()
             .Include(c => c.Status)
-            .Include(c => c.User)
             .ToListAsync();
     }
 
     public async Task<Certificate?> GetByIdWithStatusAsync(int id)
     {
-        return await _context.Certificates
+        return await BuildCertificateProfileQuery()
             .Include(c => c.Status)
-            .Include(c => c.User)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
@@ -60,7 +58,7 @@ public class CertificateRepository : Repository<Certificate>, ICertificateReposi
     }
     public async Task<List<Certificate>> GetByUserIdAsync(int userId)
     {
-        return await _context.Certificates
+        return await BuildCertificateProfileQuery()
             .Where(c => c.UserId == userId)
             .ToListAsync();
     }
@@ -72,9 +70,26 @@ public class CertificateRepository : Repository<Certificate>, ICertificateReposi
 
     public async Task<IEnumerable<Certificate>> GetAllAsync()
     {
-        return await _context.Certificates
-            .Include(c => c.User) // Без этого User будет null даже после правок в сервисе
-            .ToListAsync();
+        return await BuildCertificateProfileQuery().ToListAsync();
+    }
+
+    private IQueryable<Certificate> BuildCertificateProfileQuery()
+    {
+        return _context.Certificates
+            .Include(c => c.User)
+                .ThenInclude(u => u.Student)
+                    .ThenInclude(s => s.Speciality)
+                        .ThenInclude(u => u!.Type)
+            .Include(c => c.User)
+                .ThenInclude(u => u.Student)
+                    .ThenInclude(s => s.Speciality)
+                        .ThenInclude(u => u!.Parent)
+                            .ThenInclude(p => p!.Type)
+            .Include(c => c.User)
+                .ThenInclude(u => u.Student)
+                    .ThenInclude(s => s.Speciality)
+                        .ThenInclude(u => u!.Parent)
+                            .ThenInclude(p => p!.Parent)
+                                .ThenInclude(pp => pp!.Type);
     }
 }
-

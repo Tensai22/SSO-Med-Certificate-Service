@@ -1,5 +1,7 @@
 using MedicalCertificate.Application.CQRS.Commands;
 using MedicalCertificate.Application.CQRS.Queries;
+using MedicalCertificate.Application.Interfaces;
+using MedicalCertificate.Application.Mapping;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +12,8 @@ namespace MedicalCertificate.WebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IMediator mediator) : ControllerBase
+// TODO(copilot): this endpoint still exposes EDU display data for compatibility; trim it in the final integration pass.
+public class AuthController(IMediator mediator, IUserRepository userRepository) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("register")]
@@ -49,8 +52,8 @@ public class AuthController(IMediator mediator) : ControllerBase
             return Unauthorized();
         }
 
-        var userResult = await mediator.Send(new GetUserByIdQuery(userId.Value));
-        if (userResult.IsFailed || userResult.Value is null)
+        var user = await userRepository.GetByIdWithRoleAsync(userId.Value);
+        if (user is null)
         {
             return NotFound();
         }
@@ -60,7 +63,18 @@ public class AuthController(IMediator mediator) : ControllerBase
             userId = userId.Value,
             email = User.FindFirstValue(ClaimTypes.Email),
             role = User.FindFirstValue(ClaimTypes.Role),
-            user = userResult.Value
+            user = new
+            {
+                user.Id,
+                user.Email,
+                user.IIN,
+                user.RoleId,
+                user.EduUserId,
+                userName = EduUserMapper.GetDisplayName(user.EduUser),
+                fullName = EduUserMapper.GetDisplayName(user.EduUser),
+                EduUser = user.EduUser is null ? null : EduUserMapper.ToUserDto(user.EduUser),
+                RoleName = user.Role?.Name
+            }
         });
     }
 

@@ -28,6 +28,21 @@ namespace MedicalCertificate.Infrastructure.Repositories
         {
             return await _appDbContext.Users
                 .Include(u => u.Role)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Parent)
+                        .ThenInclude(p => p!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Parent)
+                        .ThenInclude(p => p!.Parent)
+                        .ThenInclude(pp => pp!.Type)
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
         
@@ -36,6 +51,21 @@ namespace MedicalCertificate.Infrastructure.Repositories
             
             return await _appDbContext.Users
                 .Include(u => u.Role)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Parent)
+                        .ThenInclude(p => p!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Parent)
+                        .ThenInclude(p => p!.Parent)
+                        .ThenInclude(pp => pp!.Type)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
         
@@ -43,6 +73,21 @@ namespace MedicalCertificate.Infrastructure.Repositories
         {
             return await _appDbContext.Users
                 .Include(u => u.Role)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Parent)
+                        .ThenInclude(p => p!.Type)
+                .Include(u => u.EduUser)
+                    .ThenInclude(e => e!.Student)
+                        .ThenInclude(s => s!.Speciality)
+                        .ThenInclude(o => o!.Parent)
+                        .ThenInclude(p => p!.Parent)
+                        .ThenInclude(pp => pp!.Type)
                 .ToListAsync();
         }
         public async Task<IEnumerable<User>> GetAllAsync()
@@ -58,6 +103,11 @@ namespace MedicalCertificate.Infrastructure.Repositories
         public async Task<User?> GetByIdAsync(int id)
         {
             return await _appDbContext.Users.FindAsync(id);
+        }
+
+        public async Task<User?> GetByEduUserIdAsync(int eduUserId)
+        {
+            return await _appDbContext.Users.FirstOrDefaultAsync(u => u.EduUserId == eduUserId);
         }
         
     }

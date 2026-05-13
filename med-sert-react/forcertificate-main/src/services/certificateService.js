@@ -5,6 +5,11 @@ export const fetchAllCertificates = async () => {
     return response.data;
 };
 
+export const fetchCertificateFilters = async () => {
+    const response = await apiClient.get('/Certificate/filters');
+    return response.data;
+};
+
 export const fetchUserCertificates = async (userId) => {
     const response = await apiClient.get(`/Certificate/user/${userId}`);
     return response.data;

@@ -1,5 +1,7 @@
-﻿using MedicalCertificate.Application.CQRS.Commands;
+using MedicalCertificate.Application.CQRS.Commands;
 using MedicalCertificate.Application.Interfaces;
+using MedicalCertificate.Application.Mapping;
+using MedicalCertificate.Domain.Constants;
 using MedicalCertificate.Domain.Entities;
 using KDS.Primitives.FluentResult;
 using MediatR;
@@ -9,7 +11,11 @@ using MedicalCertificate.Application.DTOs;
 
 namespace MedicalCertificate.Application.CQRS.Handlers;
 
-public class RegisterCommandHandler(IUserRepository userRepository)
+// TODO(copilot): auth command handlers still build Edu-backed profiles; prune this path when the schema is simplified.
+public class RegisterCommandHandler(
+    IUserRepository userRepository,
+    IEduUserRepository eduUserRepository,
+    IRepository<Edu_Students> eduStudentRepository)
     : IRequestHandler<RegisterCommand, Result<int>>
 {
     public async Task<Result<int>> Handle(RegisterCommand request, CancellationToken ct)
@@ -20,17 +26,54 @@ public class RegisterCommandHandler(IUserRepository userRepository)
             return Result.Failure<int>(new Error("Auth.DuplicateEmail", "User already exists"));
         }
 
+        var eduUser = await eduUserRepository.GetByEmailWithRelationsAsync(request.Email);
+        if (eduUser is null)
+        {
+            var lastName = request.Email.Split('@', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? request.Email;
+
+            eduUser = new Edu_Users
+            {
+                LastName = lastName,
+                Email = request.Email,
+                LastUpdatedBy = request.Email,
+                LastUpdatedOn = DateTime.UtcNow,
+                Resident = false
+            };
+
+            await eduUserRepository.AddAsync(eduUser);
+        }
+
+        await EnsureStudentProfileAsync(eduUser, request.Email, request.RoleId);
+
         var user = new User
         {
-            UserName = request.UserName,
             Email = request.Email,
             RoleId = request.RoleId,
             IIN = "123456789012",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            EduUserId = eduUser.ID
         };
 
         await userRepository.AddAsync(user);
         return Result.Success(user.Id);
+    }
+
+    private async Task EnsureStudentProfileAsync(Edu_Users eduUser, string updatedBy, int roleId)
+    {
+        if (roleId != RoleIds.Student || eduUser.Student is not null)
+        {
+            return;
+        }
+
+        await eduStudentRepository.AddAsync(new Edu_Students
+        {
+            StudentID = eduUser.ID,
+            NeedsDorm = false,
+            AltynBelgi = false,
+            Year = 1,
+            LastUpdatedBy = updatedBy,
+            LastUpdatedOn = DateTime.UtcNow
+        });
     }
 }
 
@@ -54,7 +97,8 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtProvider jw
             RoleId = user.RoleId,
             UserId = user.Id,
             Email = user.Email,
-            UserName = user.UserName ?? string.Empty,
+            EduUserId = user.EduUserId,
+            UserName = EduUserMapper.GetDisplayName(user.EduUser),
             RoleName = user.Role?.Name ?? "Student"
         });
     }

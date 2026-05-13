@@ -19,7 +19,7 @@ namespace MedicalCertificate.Application.CQRS.Queries
             var result = await userService.GetAllAsync();
             
             if (result.IsFailed)
-                return Result.Failure<UserDto[]>(new Error(ErrorCode.NotFound, "Пользователей нет."));
+                return Result.Failure<UserDto[]>(new Error(ErrorCode.NotFound, "Записей пользователей нет."));
 
             return result;
         }
