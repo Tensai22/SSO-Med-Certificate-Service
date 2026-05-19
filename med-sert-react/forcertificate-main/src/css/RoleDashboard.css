@@ -121,4 +121,51 @@
     .role-cards-grid {
         grid-template-columns: 1fr;
     }
+    .role-dashboard-page {
+        padding: 15px 0 0;
+        gap: 12px;
+    }
+    .role-card {
+        padding: 14px;
+        min-height: 100px;
+    }
+    .role-card-title {
+        font-size: 18px;
+    }
+    .role-card-description {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 390px) {
+    .role-dashboard-page {
+        padding: 10px 0 0;
+        gap: 10px;
+    }
+    .role-card {
+        padding: 12px;
+        min-height: 90px;
+        gap: 8px;
+    }
+    .role-card-title {
+        font-size: 16px;
+    }
+    .role-card-description {
+        font-size: 12px;
+    }
+    .role-notifications-panel {
+        padding: 12px;
+    }
+    .role-notifications-title {
+        font-size: 15px;
+    }
+    .role-notification-headline,
+    .role-notification-text {
+        font-size: 12px;
+    }
+    .role-notification-count {
+        min-width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
 }

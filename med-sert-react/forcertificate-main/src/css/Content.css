@@ -85,7 +85,8 @@
     font-weight: 600;
 }
 
-input {
+input,
+textarea {
     padding: 10px 15px;
     border: 1px solid #a3b2cc;
     border-radius: 6px;
@@ -93,9 +94,12 @@ input {
     outline: none;
     width: 100%; 
     box-sizing: border-box;
+    font-family: inherit;
+    font-size: 14px;
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
     color: #adbcd6;
 }
 
@@ -265,4 +269,128 @@ input::placeholder {
     padding: 18px;
     color: #334155;
     line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .page-container {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 0 0 0;
+    }
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .sidebar button {
+        width: auto;
+        flex: 1;
+        min-width: 140px;
+        min-height: 44px;
+    }
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    .full-width-input {
+        grid-column: span 1;
+    }
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .table-responsive table {
+        min-width: 500px;
+    }
+    .form-card {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-container {
+        gap: 10px;
+        padding: 10px 0 0 0;
+    }
+    .sidebar {
+        padding: 12px;
+        gap: 8px;
+    }
+    .sidebar button {
+        padding: 10px;
+        font-size: 13px;
+        min-height: 44px;
+    }
+    .form-card {
+        padding: 12px;
+        border-radius: 6px 6px 0 0;
+    }
+    .form-title {
+        font-size: 13px;
+        margin-bottom: 15px;
+    }
+    input,
+    textarea,
+    select {
+        padding: 8px 10px;
+        font-size: 16px; /* предотвращает zoom на iOS */
+    }
+    .form-grid {
+        gap: 10px;
+    }
+    .status-table th,
+    .status-table td {
+        padding: 8px 5px;
+        font-size: 12px;
+    }
+    .table-responsive table {
+        min-width: 420px;
+    }
+    .actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .submit-btn,
+    .submit-outline-btn {
+        width: 100%;
+        min-height: 44px;
+    }
+}
+
+@media (max-width: 390px) {
+    .page-container {
+        gap: 8px;
+        padding: 8px 0 0 0;
+    }
+    .sidebar {
+        padding: 10px;
+        gap: 6px;
+    }
+    .sidebar button {
+        font-size: 12px;
+        padding: 8px;
+        min-height: 44px;
+    }
+    .form-card {
+        padding: 10px;
+    }
+    .form-title {
+        font-size: 12px;
+    }
+    .form-grid {
+        gap: 8px;
+    }
+    .status-table th,
+    .status-table td {
+        padding: 6px 4px;
+        font-size: 11px;
+    }
+    .table-responsive table {
+        min-width: 380px;
+    }
+    .submit-btn,
+    .submit-outline-btn {
+        font-size: 13px;
+        padding: 10px 14px;
+    }
 }

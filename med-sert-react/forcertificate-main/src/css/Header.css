@@ -200,6 +200,98 @@
 
     }
 }
+
+@media (max-width: 768px) {
+    .cab_header_center {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 15px;
+    }
+    .operator_block {
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .oper_name_block p {
+        font-size: 12px;
+    }
+    .menu_button {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cab_header_center {
+        gap: 8px;
+        padding: 10px;
+    }
+    .header-logo-img {
+        height: 26px;
+    }
+    .header-title {
+        font-size: 13px;
+    }
+    .operator_block {
+        gap: 8px;
+        justify-content: flex-start;
+        width: 100%;
+    }
+    .oper_name_block p {
+        font-size: 11px;
+    }
+    .img.default-img::before {
+        width: 36px;
+        height: 36px;
+    }
+    .img.default-img img {
+        width: 28px;
+        height: 28px;
+        transform: translate(-30%, -30%);
+    }
+    .menu_button {
+        padding: 6px 8px;
+        font-size: 11px;
+        min-height: 40px;
+    }
+    .cab_header {
+        padding: 8px 0;
+    }
+}
+
+@media (max-width: 390px) {
+    .cab_header_center {
+        gap: 6px;
+        padding: 8px;
+    }
+    .header-logo-img {
+        height: 22px;
+    }
+    .header-title {
+        font-size: 12px;
+    }
+    .operator_block {
+        gap: 6px;
+    }
+    .oper_name_block p {
+        font-size: 10px;
+    }
+    .img.default-img::before {
+        width: 32px;
+        height: 32px;
+    }
+    .img.default-img img {
+        width: 24px;
+        height: 24px;
+    }
+    .menu_button {
+        padding: 6px 8px;
+        font-size: 10px;
+        min-height: 36px;
+    }
+}
+
 /* Пример кастомизации под стиль Satbayev */
 .Toastify__toast--error {
     border: 1px solid #ff4d4f;

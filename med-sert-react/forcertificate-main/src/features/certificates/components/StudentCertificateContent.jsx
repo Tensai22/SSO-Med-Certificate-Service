@@ -194,49 +194,51 @@ function StudentCertificateContent() {
                 {activeTab === 'статус' && (
                     <div className="form-card">
                         <h2 className="form-title">Статус моих заявок</h2>
-                        <table className="status-table">
-                            <thead>
-                                <tr>
-                                    <th>Дата подачи</th>
-                                    <th>Учреждение</th>
-                                    <th>Период</th>
-                                    <th>Статус</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {certificates.length > 0 ? certificates.map((cert) => (
-                                    <tr key={cert.id}>
-                                        <td>{cert.createdAt ? formatDate(cert.createdAt) : '.'}</td>
-                                        <td>{cert.clinic}</td>
-                                        <td>{formatDate(cert.startDate)} - {formatDate(cert.endDate)}</td>
-                                        <td>
-                                            <span className={`status-badge status-${cert.statusId}`}>
-                                                {
-                                                    {
-                                                        1: 'В обработке',
-                                                        2: 'Принято',
-                                                        3: 'Отклонено'
-                                                    }[cert.statusId] || 'Неизвестный статус'
-                                                }
-                                            </span>
-                                            {cert.statusId === 3 && (
-                                                <button
-                                                    type="button"
-                                                    className="status-reason-btn"
-                                                    onClick={() => setSelectedRejectionReason(cert)}
-                                                >
-                                                    Причина
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )) : (
+                        <div className="table-responsive">
+                            <table className="status-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>Заявок пока нет</td>
+                                        <th>Дата подачи</th>
+                                        <th>Учреждение</th>
+                                        <th>Период</th>
+                                        <th>Статус</th>
                                     </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {certificates.length > 0 ? certificates.map((cert) => (
+                                        <tr key={cert.id}>
+                                            <td>{cert.createdAt ? formatDate(cert.createdAt) : '.'}</td>
+                                            <td>{cert.clinic}</td>
+                                            <td>{formatDate(cert.startDate)} - {formatDate(cert.endDate)}</td>
+                                            <td>
+                                                <span className={`status-badge status-${cert.statusId}`}>
+                                                    {
+                                                        {
+                                                            1: 'В обработке',
+                                                            2: 'Принято',
+                                                            3: 'Отклонено'
+                                                        }[cert.statusId] || 'Неизвестный статус'
+                                                    }
+                                                </span>
+                                                {cert.statusId === 3 && (
+                                                    <button
+                                                        type="button"
+                                                        className="status-reason-btn"
+                                                        onClick={() => setSelectedRejectionReason(cert)}
+                                                    >
+                                                        Причина
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>Заявок пока нет</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
             </main>

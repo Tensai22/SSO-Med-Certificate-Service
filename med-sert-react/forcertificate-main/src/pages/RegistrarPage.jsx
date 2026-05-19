@@ -67,7 +67,6 @@ const RegistrarPage = () => {
     const [searchFilters, setSearchFilters] = useState(INITIAL_SEARCH_FILTERS);
     const [statusFilter, setStatusFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [activeDropdown, setActiveDropdown] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [previewType, setPreviewType] = useState('');
     const [previewError, setPreviewError] = useState('');
@@ -268,28 +267,13 @@ const RegistrarPage = () => {
         return instituteUnits.find((unit) => normalizeText(getOrgUnitTitle(unit)) === query) ?? null;
     }, [instituteUnits, searchFilters.institute]);
 
-    const instituteSuggestions = useMemo(() => {
-        const query = normalizeText(searchFilters.institute);
-        const source = query
-            ? instituteUnits.filter((unit) => normalizeText(getOrgUnitTitle(unit)).includes(query))
-            : instituteUnits;
-
-        return source
-            .map(getOrgUnitTitle)
-            .filter(Boolean);
-    }, [instituteUnits, searchFilters.institute]);
-
-    const departmentSuggestions = useMemo(() => {
-        const query = normalizeText(searchFilters.department);
+    const departmentSelectOptions = useMemo(() => {
         const source = selectedInstituteUnit
             ? departmentUnits.filter((unit) => String(getOrgUnitParentId(unit)) === String(selectedInstituteUnit.id ?? selectedInstituteUnit.ID))
             : departmentUnits;
 
-        return source
-            .filter((unit) => !query || normalizeText(getOrgUnitTitle(unit)).includes(query))
-            .map(getOrgUnitTitle)
-            .filter(Boolean);
-    }, [departmentUnits, searchFilters.department, selectedInstituteUnit]);
+        return source.map(getOrgUnitTitle).filter(Boolean);
+    }, [departmentUnits, selectedInstituteUnit]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -300,15 +284,6 @@ const RegistrarPage = () => {
             ...prev,
             [field]: value,
         }));
-    };
-
-    const selectSuggestion = (field, value) => {
-        if (field === 'institute') {
-            updateSearchFilter('department', '');
-        }
-
-        updateSearchFilter(field, value);
-        setActiveDropdown(null);
     };
 
     useEffect(() => {
@@ -368,68 +343,32 @@ const RegistrarPage = () => {
                             onChange={(e) => updateSearchFilter('iin', e.target.value)}
                         />
                         <div className="registrar-filter-group">
-                            <input
-                                className="registrar-filter-input"
-                                type="text"
-                                placeholder="Институт"
+                            <select
+                                className="registrar-status-select"
                                 value={searchFilters.institute}
                                 onChange={(e) => {
                                     updateSearchFilter('institute', e.target.value);
-                                    setActiveDropdown('institute');
+                                    updateSearchFilter('department', '');
                                 }}
-                                onFocus={() => setActiveDropdown('institute')}
-                                onBlur={() => setActiveDropdown((current) => (current === 'institute' ? null : current))}
-                                autoComplete="off"
-                            />
-                            {activeDropdown === 'institute' && instituteSuggestions.length > 0 && (
-                                <div className="registrar-dropdown">
-                                    {instituteSuggestions.map((value) => (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            className="registrar-dropdown-option"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                selectSuggestion('institute', value);
-                                            }}
-                                        >
-                                            {value}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                            >
+                                <option value="">Все институты</option>
+                                {filterOptions.institutes.map((value) => (
+                                    <option key={value} value={value}>{value}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className="registrar-filter-group">
-                            <input
-                                className="registrar-filter-input"
-                                type="text"
-                                placeholder="Кафедра"
+                            <select
+                                className="registrar-status-select"
                                 value={searchFilters.department}
-                                onChange={(e) => {
-                                    updateSearchFilter('department', e.target.value);
-                                    setActiveDropdown('department');
-                                }}
-                                onFocus={() => setActiveDropdown('department')}
-                                onBlur={() => setActiveDropdown((current) => (current === 'department' ? null : current))}
-                                autoComplete="off"
-                            />
-                            {activeDropdown === 'department' && departmentSuggestions.length > 0 && (
-                                <div className="registrar-dropdown">
-                                    {departmentSuggestions.map((value) => (
-                                        <button
-                                            key={value}
-                                            type="button"
-                                            className="registrar-dropdown-option"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                selectSuggestion('department', value);
-                                            }}
-                                        >
-                                            {value}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                onChange={(e) => updateSearchFilter('department', e.target.value)}
+                                disabled={!searchFilters.institute}
+                            >
+                                <option value="">Все кафедры</option>
+                                {departmentSelectOptions.map((value) => (
+                                    <option key={value} value={value}>{value}</option>
+                                ))}
+                            </select>
                         </div>
                         <input
                             className="registrar-filter-input"
@@ -438,20 +377,20 @@ const RegistrarPage = () => {
                             value={searchFilters.clinic}
                             onChange={(e) => updateSearchFilter('clinic', e.target.value)}
                         />
-                        <input
-                            className="registrar-filter-input"
-                            type="text"
+                        <textarea
+                            className="registrar-filter-input auto-resize-textarea"
                             placeholder="Комментарий студента"
                             value={searchFilters.studentComment}
                             onChange={(e) => updateSearchFilter('studentComment', e.target.value)}
+                            rows={1}
                         />
                         {activeTab !== 'vkhodyashie' && (
-                            <input
-                                className="registrar-filter-input"
-                                type="text"
+                            <textarea
+                                className="registrar-filter-input auto-resize-textarea"
                                 placeholder="Комментарий регистратора"
                                 value={searchFilters.registrarComment}
                                 onChange={(e) => updateSearchFilter('registrarComment', e.target.value)}
+                                rows={1}
                             />
                         )}
                         {activeTab !== 'vkhodyashie' && (
@@ -467,43 +406,45 @@ const RegistrarPage = () => {
                         )}
                     </div>
                     
-                    <table className="status-table">
-                        <thead>
-                            <tr>
-                                <th>Дата подачи</th>
-                                <th>Учреждение</th>
-                                <th>Период</th>
-                                <th>{activeTab === 'vkhodyashie' ? 'Действия' : 'Статус'}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredCertificates.length > 0 ? paginatedCertificates.map((cert) => (
-                                <tr key={cert.id}>
-                                    <td>{cert.createdAt ? formatDate(cert.createdAt) : '.'}</td>
-                                    <td>{cert.clinic}</td>
-                                    <td>{formatDate(cert.startDate)} - {formatDate(cert.endDate)}</td>
-                                    <td>
-                                        <button
-                                            className="action-btn btn-view"
-                                            onClick={() => openModal(cert)}
-                                        >
-                                            📄 Посмотреть
-                                        </button>
-                                        
-                                        {activeTab !== 'vkhodyashie' && (
-                                            <span className={`status-badge status-${cert.statusId}`} style={{marginLeft: '10px'}}>
-                                                {cert.statusId === 2 ? 'Принято' : cert.statusId === 3 ? 'Отклонено' : 'Неизвестно'}
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            )) : (
+                    <div className="table-responsive">
+                        <table className="status-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>Справки не найдены</td>
+                                    <th>Дата подачи</th>
+                                    <th>Учреждение</th>
+                                    <th>Период</th>
+                                    <th>{activeTab === 'vkhodyashie' ? 'Действия' : 'Статус'}</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filteredCertificates.length > 0 ? paginatedCertificates.map((cert) => (
+                                    <tr key={cert.id}>
+                                        <td>{cert.createdAt ? formatDate(cert.createdAt) : '.'}</td>
+                                        <td>{cert.clinic}</td>
+                                        <td>{formatDate(cert.startDate)} - {formatDate(cert.endDate)}</td>
+                                        <td>
+                                            <button
+                                                className="action-btn btn-view"
+                                                onClick={() => openModal(cert)}
+                                            >
+                                                📄 Посмотреть
+                                            </button>
+                                            
+                                            {activeTab !== 'vkhodyashie' && (
+                                                <span className={`status-badge status-${cert.statusId}`} style={{marginLeft: '10px'}}>
+                                                    {cert.statusId === 2 ? 'Принято' : cert.statusId === 3 ? 'Отклонено' : 'Неизвестно'}
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan="4" style={{textAlign: 'center', padding: '20px'}}>Справки не найдены</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
                     {filteredCertificates.length > 0 && (
                         <div className="pagination-container">
@@ -614,9 +555,11 @@ const RegistrarPage = () => {
                                     <div className="info-block action-block">
                                         <h4>Действие</h4>
                                         <textarea
+                                            className="auto-resize-textarea"
                                             placeholder="Комментарий к отклонению"
                                             value={registrarComment}
                                             onChange={(e) => setRegistrarComment(e.target.value)}
+                                            rows={2}
                                         ></textarea>
                                         <div className="modal-actions">
                                             <button
